@@ -1,4 +1,5 @@
 
+#include <stdio.h>
 #include <windows.h>
 #include <commctrl.h>
 
@@ -8,7 +9,6 @@
 #define IDM_VIEW_STB 4
 #define IDM_FILE_DIALOG 5
 #define IDM_FILE_COLOR 6
-
 
 
 HWND ghSb;
@@ -61,6 +61,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   ShowWindow(hwnd, nCmdShow);
   UpdateWindow(hwnd);
 
+
   while( GetMessage(&msg, NULL, 0, 0)) {
     DispatchMessage(&msg);
   }
@@ -82,7 +83,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 
 		  InitCommonControls();
 
-		  ghSb = CreateStatusWindow(WS_CHILD | WS_VISIBLE, L"xxx", hwnd, 1);
+		  ghSb = CreateStatusWindow(WS_CHILD | WS_VISIBLE, "xxx", hwnd, 1);
 
 		  RegisterDialogClass(hwnd);
 
@@ -153,14 +154,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 
 void AddMenus(HWND hwnd) 
 {
+	HBITMAP hBitmap;
   hMenubar = CreateMenu();
   hMenu = CreateMenu();
-
+  
   AppendMenuW(hMenu, MF_STRING, IDM_FILE_NEW, L"&New");
   AppendMenuW(hMenu, MF_STRING, IDM_FILE_OPEN, L"&Open");
 
   AppendMenuW(hMenu, MF_STRING, IDM_VIEW_STB, L"&Statusbar");
-  CheckMenuItem(hMenu, IDM_VIEW_STB, MF_CHECKED);  
+  CheckMenuItem(hMenu, IDM_VIEW_STB, MF_CHECKED);
 
   AppendMenuW(hMenu, MF_STRING, IDM_FILE_DIALOG, L"&Dialog");
   AppendMenuW(hMenu, MF_STRING, IDM_FILE_COLOR, L"&Color");
@@ -168,7 +170,9 @@ void AddMenus(HWND hwnd)
   AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
   AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
 
-  
+  hBitmap = (HBITMAP) LoadImage( NULL, "test123.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+  SetMenuItemBitmaps(hMenu, IDM_FILE_OPEN, MF_BITMAP | MF_BYCOMMAND, hBitmap, hBitmap);
+
   
   AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR) hMenu, L"&File");
 
@@ -302,23 +306,35 @@ void OpenDialog(HWND hwnd)
 
   if(GetOpenFileName(&ofn))
       LoadFile(ofn.lpstrFile);
+
+  
 }
 
-void LoadFile(LPCWSTR file)
+void LoadFile(LPSTR file)
 {
   HANDLE hFile;
   DWORD dwSize;
   DWORD dw;
+  LPBYTE lpBuffer;
+  WCHAR ws_buf[500] = {0};
 
-  LPBYTE lpBuffer = NULL;
+  /* string consisting of several Asian characters */
+	wchar_t wcsString[] = L"\u9580\u961c\u9640\u963f\u963b\u9644";
   
-  hFile = CreateFile(file, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+  hFile = CreateFileW((LPCWSTR) file, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
   dwSize = GetFileSize(hFile, NULL);
   lpBuffer = (LPBYTE) HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, dwSize + 1);
-  ReadFile(hFile, (LPWSTR)lpBuffer, dwSize, &dw, NULL);
+  ReadFile(hFile, lpBuffer, dwSize, &dw, NULL);
   CloseHandle(hFile);
-  lpBuffer[dwSize] = 0;
-  SetWindowText(ghwndEdit, (LPCWSTR) lpBuffer);		// BUG HERE, replace lpBuffer with L"abcd text"
+  //lpBuffer[dwSize] = 0;
+
+  
+
+  MultiByteToWideChar(CP_UTF8, 0, (LPCCH) lpBuffer, dwSize, ws_buf, dwSize);
+  SetWindowTextW(ghwndEdit, (LPWSTR) ws_buf);		// BUG HERE, replace lpBuffer with L"abcd text"
+  MessageBoxW(NULL, ws_buf, L"First", MB_OK);
+  
+
   HeapFree(GetProcessHeap(), 0, lpBuffer);
 }
 
