@@ -1,4 +1,7 @@
 
+/* force MSVC to use WideChar function, must be declared before #include <windows.h> */
+#define UNICODE		
+
 #include <stdio.h>
 #include <windows.h>
 #include <commctrl.h>
@@ -9,6 +12,7 @@
 #define IDM_VIEW_STB 4
 #define IDM_FILE_DIALOG 5
 #define IDM_FILE_COLOR 6
+#define IDM_FILE_CONTROL 7
 
 
 HWND ghSb;
@@ -57,12 +61,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   hwnd = CreateWindowW( wc.lpszClassName, L"Window",
                 WS_OVERLAPPEDWINDOW | WS_VISIBLE,
                 100, 100, 350, 250, NULL, NULL, hInstance, NULL);  
-
+  
   ShowWindow(hwnd, nCmdShow);
   UpdateWindow(hwnd);
 
 
   while( GetMessage(&msg, NULL, 0, 0)) {
+	TranslateMessage(&msg);
     DispatchMessage(&msg);
   }
 
@@ -75,6 +80,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 	  POINT point;
 	  UINT state;
 	  static HWND hwndPanel;
+	  HWND hwnd_tmp;
   switch(msg)  
   {
 	  
@@ -83,20 +89,22 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 
 		  InitCommonControls();
 
-		  ghSb = CreateStatusWindow(WS_CHILD | WS_VISIBLE, "xxx", hwnd, 1);
+		  ghSb = CreateStatusWindowW(WS_CHILD | WS_VISIBLE, L"xxx", hwnd, 1);
 
 		  RegisterDialogClass(hwnd);
 
-
-		  ghwndEdit = CreateWindowEx(WS_EX_RIGHTSCROLLBAR, TEXT("edit"), NULL,    
+		  ghwndEdit = CreateWindowExW(WS_EX_RIGHTSCROLLBAR, L"edit", NULL,    
                         WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE,
                         0, 0, 260, 180,        
                         hwnd, (HMENU) 1, NULL, NULL);
 		  
-
           break;
 
    case WM_COMMAND:
+	   
+      if (LOWORD(wParam) == 2) {
+        Beep(40, 50);
+      }
           switch(LOWORD(wParam)) {
               case IDM_FILE_NEW:
 				  Beep(50, 100);
@@ -108,6 +116,27 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 				  gColor = ShowColorDialog(hwnd);
 				  InvalidateRect(hwndPanel, NULL, TRUE);
 				  break;
+			  case IDM_FILE_CONTROL:
+				  hwnd_tmp = CreateWindowEx(WS_EX_DLGMODALFRAME | WS_EX_TOPMOST,  L"DialogClass", L"Dialog Box", 
+								WS_VISIBLE | WS_SYSMENU | WS_CAPTION , 100, 100, 400, 550, 
+								NULL, NULL, GetModuleHandle(NULL),  NULL);
+				  CreateWindowW(L"Static", L"STATIC label", WS_CHILD | WS_VISIBLE | SS_LEFT, 
+									 20, 90, 300, 230, hwnd_tmp, (HMENU) 1, NULL, NULL);
+				  CreateWindowW(L"button", L"Beep", WS_VISIBLE | WS_CHILD ,
+									20, 50, 80, 25, hwnd_tmp, (HMENU) 600, NULL, NULL);
+				  CreateWindowW(L"button", L"Quit Button", WS_VISIBLE | WS_CHILD ,
+									120, 50, 80, 25, hwnd_tmp, (HMENU) 650, NULL, NULL);
+
+				  CreateWindowW(L"button", L"Show Title", WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
+									20, 20, 185, 35, hwnd_tmp, (HMENU) 700, NULL, NULL);
+
+				  //CheckDlgButton(hwnd_tmp, 1, BST_CHECKED);
+
+				  ShowWindow(hwnd_tmp, SW_SHOWDEFAULT);
+				  break;
+			  case 200:
+				  
+				  break;
               case IDM_FILE_OPEN:
                   OpenDialog(hwnd);
                   break;
@@ -115,9 +144,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
                   SendMessage(hwnd, WM_CLOSE, 0, 0);
                   break;
 			  case IDM_VIEW_STB:
-				 
                   state = GetMenuState(hMenu, IDM_VIEW_STB, MF_BYCOMMAND);
-
                   if (state == SW_SHOWNA) {
                     ShowWindow(ghSb, SW_HIDE);
                     CheckMenuItem(hMenu, IDM_VIEW_STB, MF_UNCHECKED);
@@ -167,10 +194,12 @@ void AddMenus(HWND hwnd)
   AppendMenuW(hMenu, MF_STRING, IDM_FILE_DIALOG, L"&Dialog");
   AppendMenuW(hMenu, MF_STRING, IDM_FILE_COLOR, L"&Color");
   
+  AppendMenuW(hMenu, MF_STRING, IDM_FILE_CONTROL, L"&Control");
+
   AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
   AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
-
-  hBitmap = (HBITMAP) LoadImage( NULL, "test123.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+  
+  hBitmap = (HBITMAP) LoadImageW( NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
   SetMenuItemBitmaps(hMenu, IDM_FILE_OPEN, MF_BITMAP | MF_BYCOMMAND, hBitmap, hBitmap);
 
   
@@ -182,20 +211,42 @@ void AddMenus(HWND hwnd)
 }
 
 
-LRESULT CALLBACK DialogProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
+LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-
+	UINT checked;
   switch(msg)  
   {
     case WM_CREATE:
-	CreateWindow(TEXT("button"), TEXT("Ok"),    
+	/*CreateWindow(TEXT("button"), TEXT("Ok"),    
 	      WS_VISIBLE | WS_CHILD ,
 	      50, 50, 80, 25,        
-	      hwnd, (HMENU) 1, NULL, NULL);  
+	      hwnd, (HMENU) 2, NULL, NULL);*/
 	break;
 
     case WM_COMMAND:
-	DestroyWindow(hwnd);
+		
+
+		switch (LOWORD(wParam))
+		{
+			case 600:
+				Beep(40, 50);
+				break;
+			case 650:
+				DestroyWindow(hwnd);
+				break;
+			case 700:
+				checked = IsDlgButtonChecked(hwnd, 700);
+				if (checked) {
+					CheckDlgButton(hwnd, 700, BST_UNCHECKED);
+					SetWindowTextW(hwnd, L"unchecked");
+				} else {
+					CheckDlgButton(hwnd, 700, BST_CHECKED);
+					SetWindowTextW(hwnd, L"checked");
+				}
+				break;
+
+		}
+		
 	break;
 
     case WM_CLOSE:
@@ -214,7 +265,7 @@ void RegisterDialogClass(HWND hwnd)
   wc.lpfnWndProc      = (WNDPROC) DialogProc;
   wc.hInstance        = ghInstance;
   wc.hbrBackground    = GetSysColorBrush(COLOR_3DFACE);
-  wc.lpszClassName    = TEXT("DialogClass");
+  wc.lpszClassName    = L"DialogClass";
   RegisterClassEx(&wc);
 
 }
@@ -310,7 +361,7 @@ void OpenDialog(HWND hwnd)
   
 }
 
-void LoadFile(LPSTR file)
+void LoadFile(LPCWSTR file)
 {
   HANDLE hFile;
   DWORD dwSize;
