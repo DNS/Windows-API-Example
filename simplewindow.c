@@ -21,20 +21,22 @@ HMENU hMenubar;
 HMENU hMenu;
 HINSTANCE ghInstance;
 HWND ghwndEdit;
+HWND hEdit , hLabel;
 
-LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-LRESULT CALLBACK DialogProc(HWND, UINT, WPARAM, LPARAM);
-LRESULT CALLBACK PanelProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK PanelProc (HWND, UINT, WPARAM, LPARAM);
 
-void CreateDialogBox(HWND);
-void RegisterDialogClass(HWND);
-void RegisterPanel(void);
-COLORREF ShowColorDialog(HWND);
-void CreateMenubar(HWND);
-void OpenDialog(HWND);
-void LoadFile(LPSTR);
+void CreateDialogBox (HWND);
+void RegisterDialogClass (HWND);
+void RegisterPanel ();
+COLORREF ShowColorDialog (HWND);
+void CreateMenubar (HWND);
+void OpenDialog (HWND);
+void LoadFile (LPCWSTR);
+void CreateMyTooltip (HWND);
 
-void AddMenus(HWND);
+void AddMenus (HWND);
 
 
 COLORREF gColor = RGB(255, 255, 255);
@@ -44,31 +46,42 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 {
   MSG  msg;    
   HWND hwnd;
-  WNDCLASSW wc;
-	
+  WNDCLASSEXW wc;
+  
+  //memset(&wc, 0, sizeof(wc));
+  wc.cbSize = sizeof(WNDCLASSEXW);
   wc.style         = CS_HREDRAW | CS_VREDRAW;
+  wc.lpfnWndProc   = WndProc;
   wc.cbClsExtra    = 0;
   wc.cbWndExtra    = 0;
-  wc.lpszClassName = L"Window";
   wc.hInstance     = hInstance;
-  wc.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
   wc.lpszMenuName  = NULL;
-  wc.lpfnWndProc   = WndProc;
+  wc.lpszClassName = L"Window";
+  wc.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+  wc.hbrBackground = (HBRUSH)(COLOR_WINDOW);			// 9: light blue
   wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
   wc.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
+  wc.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
   
-  RegisterClassW(&wc);
-  hwnd = CreateWindowW( wc.lpszClassName, L"Window",
-                WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-                100, 100, 350, 250, NULL, NULL, hInstance, NULL);  
+  
+  if (!RegisterClassExW(&wc) ) {
+	  MessageBoxW(NULL, L"Window Registration Failed!", L"Error!", MB_ICONEXCLAMATION | MB_OK);
+	  return 0;
+  }
+
+  hwnd = CreateWindowExW(WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES,
+				wc.lpszClassName, L"Title",
+                WS_VISIBLE | WS_OVERLAPPEDWINDOW,
+                100, 100, 550, 550, 
+				NULL, NULL, hInstance, NULL);  
   
   ShowWindow(hwnd, nCmdShow);
   UpdateWindow(hwnd);
 
 
-  while( GetMessage(&msg, NULL, 0, 0)) {
-	TranslateMessage(&msg);
-    DispatchMessage(&msg);
+  while (GetMessage(&msg, NULL, 0, 0) > 0) {    /* If no error is received... */
+	TranslateMessage(&msg);		/* Translate key codes to chars if present */
+    DispatchMessage(&msg);		/* Send it to WndProc */
   }
 
   return (int) msg.wParam;
@@ -92,12 +105,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 		  ghSb = CreateStatusWindowW(WS_CHILD | WS_VISIBLE, L"xxx", hwnd, 1);
 
 		  RegisterDialogClass(hwnd);
+		  
+		  CreateMyTooltip(hwnd);
 
 		  ghwndEdit = CreateWindowExW(WS_EX_RIGHTSCROLLBAR, L"edit", NULL,    
                         WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE,
                         0, 0, 260, 180,        
                         hwnd, (HMENU) 1, NULL, NULL);
 		  
+		  
+
           break;
 
    case WM_COMMAND:
@@ -120,19 +137,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg,
 				  hwnd_tmp = CreateWindowEx(WS_EX_DLGMODALFRAME | WS_EX_TOPMOST,  L"DialogClass", L"Dialog Box", 
 								WS_VISIBLE | WS_SYSMENU | WS_CAPTION , 100, 100, 400, 550, 
 								NULL, NULL, GetModuleHandle(NULL),  NULL);
-				  CreateWindowW(L"Static", L"STATIC label", WS_CHILD | WS_VISIBLE | SS_LEFT, 
+				  hLabel = CreateWindowW(L"STATIC", L"STATIC label", WS_CHILD | WS_VISIBLE | SS_LEFT, 
 									 20, 90, 300, 230, hwnd_tmp, (HMENU) 1, NULL, NULL);
-				  CreateWindowW(L"button", L"Beep", WS_VISIBLE | WS_CHILD ,
+				  CreateWindowW(L"BUTTON", L"Beep", WS_VISIBLE | WS_CHILD ,
 									20, 50, 80, 25, hwnd_tmp, (HMENU) 600, NULL, NULL);
-				  CreateWindowW(L"button", L"Quit Button", WS_VISIBLE | WS_CHILD ,
+				  CreateWindowW(L"BUTTON", L"Quit Button", WS_VISIBLE | WS_CHILD ,
 									120, 50, 80, 25, hwnd_tmp, (HMENU) 650, NULL, NULL);
 
-				  CreateWindowW(L"button", L"Show Title", WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
+				  CreateWindowW(L"BUTTON", L"Show Title", WS_VISIBLE | WS_CHILD | BS_CHECKBOX,
 									20, 20, 185, 35, hwnd_tmp, (HMENU) 700, NULL, NULL);
 
-				  //CheckDlgButton(hwnd_tmp, 1, BST_CHECKED);
+				  // EDIT ctrl: max 32,767 bytes
+				  hEdit = CreateWindowW(L"EDIT", L"Show Title", WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL ,
+									20, 110, 185, 20, hwnd_tmp, (HMENU) 800, NULL, NULL);
 
-				  ShowWindow(hwnd_tmp, SW_SHOWDEFAULT);
+				  CheckDlgButton(hwnd_tmp, 1, BST_CHECKED);
+				  CreateMyTooltip(hwnd_tmp);		// NOT WORKING ?
+				  ShowWindow(hwnd_tmp, SW_SHOW);
 				  break;
 			  case 200:
 				  
@@ -214,6 +235,7 @@ void AddMenus(HWND hwnd)
 LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	UINT checked;
+	WCHAR buf_text[500];
   switch(msg)  
   {
     case WM_CREATE:
@@ -229,6 +251,8 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		switch (LOWORD(wParam))
 		{
 			case 600:
+				GetWindowTextW(hEdit, buf_text, 50);
+				SetWindowTextW(hLabel, buf_text);
 				Beep(40, 50);
 				break;
 			case 650:
@@ -244,7 +268,9 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					SetWindowTextW(hwnd, L"checked");
 				}
 				break;
-
+			case 800:
+				SetWindowTextW(hwnd, L"asd");
+				break;
 		}
 		
 	break;
@@ -294,7 +320,7 @@ COLORREF ShowColorDialog(HWND hwnd) {
 }
 
 
-void RegisterPanel(void) {
+void RegisterPanel () {
 
   WNDCLASS rwc = {0};
   rwc.lpszClassName = TEXT( "Panel" );
@@ -303,7 +329,7 @@ void RegisterPanel(void) {
   RegisterClass(&rwc);
 }
 
-LRESULT CALLBACK PanelProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
+LRESULT CALLBACK PanelProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   HDC hdc;
   PAINTSTRUCT ps; 
@@ -388,6 +414,45 @@ void LoadFile(LPCWSTR file)
 
   HeapFree(GetProcessHeap(), 0, lpBuffer);
 }
+
+
+void CreateMyTooltip (HWND hwnd)
+{
+
+    INITCOMMONCONTROLSEX iccex; 
+    HWND hwndTT;                
+
+    TOOLINFO ti;
+    WCHAR tooltip[30] = L"A main window";
+    RECT rect;                 
+  
+    iccex.dwICC = ICC_WIN95_CLASSES;
+    iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+    InitCommonControlsEx(&iccex);
+
+    hwndTT = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, NULL,
+        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,		
+        0, 0, 0, 0, hwnd, NULL, NULL, NULL );
+
+    SetWindowPos(hwndTT, HWND_TOPMOST, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+   
+    GetClientRect (hwnd, &rect);
+
+    ti.cbSize = sizeof(TOOLINFO);
+    ti.uFlags = TTF_SUBCLASS;
+    ti.hwnd = hwnd;
+    ti.hinst = NULL;
+    ti.uId = 0;
+    ti.lpszText = tooltip;
+    ti.rect.left = rect.left;    
+    ti.rect.top = rect.top;
+    ti.rect.right = rect.right;
+    ti.rect.bottom = rect.bottom;
+
+    SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);	
+}
+
 
 
 // MessageBoxW(NULL, L"First Program", L"First", MB_OK);
