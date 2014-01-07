@@ -30,6 +30,7 @@ HWND hEdit , hLabel, button1, button2, checkbox1;
 HFONT hFont, hFont_default;
 HBITMAP hBitmap;
 NONCLIENTMETRICS ncm;
+char buf[500];
 
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
@@ -77,7 +78,7 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	}
 
 	hwnd = CreateWindowExW(WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES, wc.lpszClassName, L"Title", 
-		WS_VISIBLE | WS_OVERLAPPEDWINDOW, 100, 100, 550, 550, NULL, NULL, hInstance, NULL);
+		WS_VISIBLE | WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 550, 550, NULL, NULL, hInstance, NULL);
 
 	
 	
@@ -96,11 +97,15 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	return (int) msg.wParam;
 }
 
+
 LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	POINT point;
 	UINT state;
 	static HWND hwndPanel;
 	HWND hwnd_tmp;
+	RECT rcClient;
+	LPRECT rcParent;
+
 	
 	switch (msg) {
 		case WM_CREATE:
@@ -109,22 +114,28 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			ghSb = CreateStatusWindowW(WS_CHILD | WS_VISIBLE, L"xxx", hwnd, 1);
 			RegisterDialogClass(hwnd);
 			CreateMyTooltip(hwnd);
-			ghwndEdit = CreateWindowExW(WS_EX_RIGHTSCROLLBAR, L"edit", NULL,
-				WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE,
-				0, 0, 260, 180, hwnd, (HMENU) 1, NULL, NULL);
+			
 
 			// Delphi: Tahoma 13, .NET: Microsoft Sans Serif 14, System Default: Segoe UI
 			
 			// get custom font
-			hFont = CreateFontW(14, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET, 
+			hFont = CreateFontW(15, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET, 
 						OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
-						DEFAULT_PITCH | FF_DONTCARE, L"Microsoft Sans Serif");
+						DEFAULT_PITCH | FF_DONTCARE, L"Comic Sans MS");
 
 			// get system default font
 			ncm.cbSize = sizeof(NONCLIENTMETRICS);
 			SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
 			hFont_default = CreateFontIndirect(&ncm.lfMessageFont);
 			
+			ghwndEdit = CreateWindowExW(WS_EX_RIGHTSCROLLBAR, L"EDIT", NULL,
+				WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE | ES_WANTRETURN,
+				0, 0, 260, 180, hwnd, (HMENU) 284, NULL, NULL);
+			
+			SendDlgItemMessageW(hwnd, 284, WM_SETFONT,(WPARAM) hFont_default, MAKELPARAM(TRUE,0));
+			//SendMessageW(hwnd, WM_SETFONT, (WPARAM) hFont_default, TRUE);
+			//SendMessageW(ghwndEdit, WM_SETFONT, (WPARAM) hFont_default, MAKELPARAM(TRUE, 0));
+
 			break;
 
 		case WM_COMMAND:
@@ -144,15 +155,16 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 						L"Dialog Box", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 400, 550, hwnd, NULL, GetModuleHandle(NULL), NULL);
 
+					
 					// default Height: Edit 21, Button 25, Static 13 
-
+					
 					hLabel = CreateWindowW(L"STATIC", L"This is Label", 
 						WS_CHILD | WS_VISIBLE | SS_LEFT, 
 						20, 90, 300, 13, hwnd_tmp, (HMENU) 500, NULL, NULL);
 					button1 = CreateWindowW(L"BUTTON", L"Button", WS_VISIBLE | WS_CHILD, 
 						20, 50, 80, 25, hwnd_tmp, (HMENU) 600, NULL, NULL);
-					button2 = CreateWindowW(L"BUTTON", L"Quit Button", WS_VISIBLE | WS_CHILD, 
-						120, 50, 80, 14, hwnd_tmp, (HMENU) 650, NULL, NULL);
+					button2 = CreateWindowW(L"BUTTON", L"&Quit", WS_VISIBLE | WS_CHILD, 
+						120, 50, 80, 25, hwnd_tmp, (HMENU) 650, NULL, NULL);
 					checkbox1 = CreateWindowW(L"BUTTON", L"This is Checkbox", 
 						WS_VISIBLE | WS_CHILD | BS_CHECKBOX, 
 						20, 10, 185, 14, hwnd_tmp, (HMENU) 700, NULL, NULL);
@@ -168,14 +180,15 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					// better font
 					SendMessageW(hEdit, WM_SETFONT, (WPARAM) hFont, TRUE);
 					SendMessageW(hLabel, WM_SETFONT, (WPARAM) hFont, TRUE);
-					SendMessageW(button1, WM_SETFONT, (WPARAM) hFont, TRUE);
+					//SendMessageW(button1, WM_SETFONT, (WPARAM) hFont, TRUE);
 					SendMessageW(button2, WM_SETFONT, (WPARAM) hFont, TRUE);
 					SendMessageW(checkbox1, WM_SETFONT, (WPARAM) hFont, TRUE);
 					
 					SendMessageW(hEdit, WM_SETFONT, (WPARAM) hFont_default, MAKELPARAM(TRUE, 0));
 					SendMessageW(hLabel, WM_SETFONT, (WPARAM) hFont_default, MAKELPARAM(TRUE, 0));
+					
+					//ShowWindow(hwnd_tmp, SW_SHOW);	// already WS_VISIBLE
 
-					ShowWindow(hwnd_tmp, SW_SHOW);
 					break;
 				case 200:
 
@@ -200,27 +213,40 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			}	// switch(LOWORD(wParam))
 
 			break;
-			
-			case WM_RBUTTONUP:
-				point.x = LOWORD(lParam);
-				point.y = HIWORD(lParam);
-				hMenu = CreatePopupMenu();
-				ClientToScreen(hwnd, &point);
+		case WM_SIZE:
+			GetClientRect(hwnd, &rcClient); 
+			rcParent = (LPRECT) lParam; 
+			MoveWindow(ghwndEdit, rcClient.top, rcClient.left, rcClient.right, rcClient.bottom, TRUE); 
 
-				AppendMenuW(hMenu, MF_STRING, IDM_FILE_NEW, L"&New");
-				AppendMenuW(hMenu, MF_STRING, IDM_FILE_OPEN, L"&Open");
-				AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
-				AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
+			break;
+		case WM_SETFOCUS:
+			SetFocus(GetDlgItem(hwnd, 0));
+			break;
+		case WM_RBUTTONUP:
+			point.x = LOWORD(lParam);
+			point.y = HIWORD(lParam);
+			hMenu = CreatePopupMenu();
+			ClientToScreen(hwnd, &point);
 
-				TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, point.x, point.y, 0, hwnd, NULL);
-				DestroyMenu(hMenu);
-				break;
-			case WM_DESTROY:
-				DeleteObject(hFont);
-				DeleteObject(hFont_default);
-				DeleteObject(hBitmap);
-				PostQuitMessage(0);
-				break;
+			AppendMenuW(hMenu, MF_STRING, IDM_FILE_NEW, L"&New");
+			AppendMenuW(hMenu, MF_STRING, IDM_FILE_OPEN, L"&Open");
+			AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
+			AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
+
+			TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, point.x, point.y, 0, hwnd, NULL);
+			DestroyMenu(hMenu);
+			break;
+		case WM_LBUTTONDOWN:
+			break;
+		case WM_CLOSE:
+			DestroyWindow(hwnd);
+			break;
+		case WM_DESTROY:
+			DeleteObject(hFont);
+			DeleteObject(hFont_default);
+			DeleteObject(hBitmap);
+			PostQuitMessage(0);
+			break;
 		return 0;
 	}
 
@@ -298,6 +324,10 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 			//MessageBoxW(NULL, L"Font set", L"First", MB_OK);
 			
 			break;
+		/*case WM_SIZE:
+			if (wParam != SIZE_MINIMIZED)
+				MoveWindow(GetDlgItem(hwnd, 0), 0, 0, LOWORD(lParam),HIWORD(lParam), TRUE);
+			break;*/
 		case WM_CLOSE:
 			DestroyWindow(hwnd);
 			break; 
@@ -406,7 +436,7 @@ void LoadFile (LPCWSTR file) {
 	DWORD dwSize;
 	DWORD dw;
 	LPBYTE lpBuffer;
-	WCHAR ws_buf[500] = {0};
+	WCHAR ws_buf[50000] = {0};		/* BUG: buffer overflow ! */
 
 	/* string consisting of several Asian characters */
 	wchar_t wcsString[] = L"\u9580\u961c\u9640\u963f\u963b\u9644";
@@ -420,7 +450,7 @@ void LoadFile (LPCWSTR file) {
 
 	MultiByteToWideChar(CP_UTF8, 0, (LPCCH) lpBuffer, dwSize, ws_buf, dwSize);
 	SetWindowTextW(ghwndEdit, (LPWSTR) ws_buf);		// BUG HERE, replace lpBuffer with L"abcd text"
-	MessageBoxW(NULL, ws_buf, L"First", MB_OK);
+	//MessageBoxW(NULL, ws_buf, L"First", MB_OK);
 
 	HeapFree(GetProcessHeap(), 0, lpBuffer);
 }
