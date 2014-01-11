@@ -1,15 +1,19 @@
 
 /* force MSVC to use WideChar function, must be declared before #include <windows.h> */
-#define UNICODE		
+#define UNICODE
+
 
 #include <stdio.h>
 #include <windows.h>
 #include <commctrl.h>
+#include <richedit.h>
+
+
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 	name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
 	processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
-
+	
 
 #define IDM_FILE_NEW 1
 #define IDM_FILE_OPEN 2
@@ -30,7 +34,10 @@ HWND hEdit , hLabel, button1, button2, checkbox1;
 HFONT hFont, hFont_default;
 HBITMAP hBitmap;
 NONCLIENTMETRICS ncm;
-char buf[500];
+HWND hTrack;
+UINT hTrack_id;
+HWND hlbl;
+WCHAR buf[500];
 
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
@@ -44,8 +51,13 @@ void CreateMenubar (HWND);
 void OpenDialog (HWND);
 void LoadFile (LPCWSTR);
 void CreateMyTooltip (HWND);
-
+void CreateTrackBar(HWND);
+void UpdateTrackBar();
 void AddMenus (HWND);
+
+
+HMODULE hmod;
+
 
 
 COLORREF gColor = RGB(255, 255, 255);
@@ -77,21 +89,22 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 		return -1;
 	}
 
-	hwnd = CreateWindowExW(WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES, wc.lpszClassName, L"Title", 
-		WS_VISIBLE | WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 550, 550, NULL, NULL, hInstance, NULL);
+	hwnd = CreateWindowExW(WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES , wc.lpszClassName, L"Title", 
+		WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, 
+		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
 
 	
 	
 	
 	
-	ShowWindow(hwnd, nCmdShow);
-	UpdateWindow(hwnd);
+	//ShowWindow(hwnd, nCmdShow);
+	//UpdateWindow(hwnd);
 
 	
 
-	while (GetMessage(&msg, NULL, 0, 0) > 0) {   /* If no error is received... */
+	while (GetMessageW(&msg, NULL, 0, 0) > 0) {   /* If no error is received... */
 		TranslateMessage(&msg);		/* Translate key codes to chars if present */
-		DispatchMessage(&msg);		/* Send it to WndProc */
+		DispatchMessageW(&msg);		/* Send it to WndProc */
 	}
 
 	return (int) msg.wParam;
@@ -103,15 +116,16 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	UINT state;
 	static HWND hwndPanel;
 	HWND hwnd_tmp;
-	RECT rcClient;
-	LPRECT rcParent;
+	RECT rectParent;
+	INITCOMMONCONTROLSEX lpInitCtrls;
 
 	
 	switch (msg) {
 		case WM_CREATE:
 			AddMenus(hwnd);
-			InitCommonControls();
-			ghSb = CreateStatusWindowW(WS_CHILD | WS_VISIBLE, L"xxx", hwnd, 1);
+			//InitCommonControls();		// deprecated
+			//InitCommonControlsEx(NULL);
+			//ghSb = CreateStatusWindowW(WS_CHILD | WS_VISIBLE, L"xxx", hwnd, 1);
 			RegisterDialogClass(hwnd);
 			CreateMyTooltip(hwnd);
 			
@@ -120,22 +134,36 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			
 			// get custom font
 			hFont = CreateFontW(15, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET, 
-						OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
-						DEFAULT_PITCH | FF_DONTCARE, L"Comic Sans MS");
+				OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
+				DEFAULT_PITCH | FF_DONTCARE, L"Comic Sans MS");
 
 			// get system default font
 			ncm.cbSize = sizeof(NONCLIENTMETRICS);
 			SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
 			hFont_default = CreateFontIndirect(&ncm.lfMessageFont);
 			
-			ghwndEdit = CreateWindowExW(WS_EX_RIGHTSCROLLBAR, L"EDIT", NULL,
-				WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE | ES_WANTRETURN,
-				0, 0, 260, 180, hwnd, (HMENU) 284, NULL, NULL);
-			
-			SendDlgItemMessageW(hwnd, 284, WM_SETFONT,(WPARAM) hFont_default, MAKELPARAM(TRUE,0));
-			//SendMessageW(hwnd, WM_SETFONT, (WPARAM) hFont_default, TRUE);
-			//SendMessageW(ghwndEdit, WM_SETFONT, (WPARAM) hFont_default, MAKELPARAM(TRUE, 0));
+			ghwndEdit = CreateWindowExW(WS_EX_RIGHTSCROLLBAR, L"EDIT", L"abcd",
+				WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE | ES_WANTRETURN | WS_CLIPCHILDREN,
+				0, 0, 260, 180, hwnd, NULL, NULL, NULL);
+				
+			//SendMessageW(ghwndEdit, WM_SETFONT, (WPARAM) hFont, TRUE);
 
+			/* // RICH EDIT CONTROL
+			LoadLibrary(TEXT("Msftedit.dll"));
+			ghwndEdit = CreateWindowExW(NULL, MSFTEDIT_CLASS, NULL,
+				WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE |WS_HSCROLL | WS_VSCROLL |WS_BORDER | WS_TABSTOP ,
+				0, 0, 260, 180, hwnd, NULL, NULL, NULL);*/
+
+			/*// Scintilla
+			hmod = LoadLibraryW(L"SciLexer.DLL");
+			if (hmod != NULL) {
+				ghwndEdit = CreateWindowExW(NULL, L"Scintilla", L"abcd",
+					WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_CLIPCHILDREN,
+					0, 0, 260, 180, hwnd, NULL, NULL, NULL);
+			} else {
+				MessageBoxW(hwnd, L"The Scintilla DLL could not be loaded.",
+					L"Error loading Scintilla", MB_OK | MB_ICONERROR);
+			}*/
 			break;
 
 		case WM_COMMAND:
@@ -154,7 +182,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					hwnd_tmp = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_TOPMOST, L"DialogClass", 
 						L"Dialog Box", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 400, 550, hwnd, NULL, GetModuleHandle(NULL), NULL);
-
+					
 					
 					// default Height: Edit 21, Button 25, Static 13 
 					
@@ -175,7 +203,6 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 						20, 110, 185, 21, hwnd_tmp, (HMENU) 800, NULL, NULL);	// WS_BORDER
 
 					CheckDlgButton(hwnd_tmp, 1, BST_CHECKED);
-					CreateMyTooltip(hwnd);	// NOT WORKING ?
 
 					// better font
 					SendMessageW(hEdit, WM_SETFONT, (WPARAM) hFont, TRUE);
@@ -189,9 +216,24 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					
 					//ShowWindow(hwnd_tmp, SW_SHOW);	// already WS_VISIBLE
 
-					break;
-				case 200:
+					CreateTrackBar(hwnd_tmp);
 
+
+
+					// GroupBox
+					/*CreateWindowW(TEXT("button"), TEXT("Choose Color"), 
+							WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
+							10, 200, 120, 110, hwnd_tmp, (HMENU) 0, NULL, NULL);
+					  CreateWindowW(TEXT("button"), TEXT("Blue"),
+							WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
+							20, 200, 100, 30, hwnd_tmp, (HMENU) 111 , NULL, NULL);
+					  CreateWindowW(TEXT("button"), TEXT("Yellow"),
+							WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
+							20, 200, 100, 30, hwnd_tmp, (HMENU) 112 , NULL, NULL);
+					  CreateWindowW(TEXT("button"), TEXT("Orange"),
+							WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
+							20, 200, 100, 30, hwnd_tmp, (HMENU) 113 , NULL, NULL);
+					*/
 					break;
 				case IDM_FILE_OPEN:
 					OpenDialog(hwnd);
@@ -208,19 +250,28 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 						ShowWindow(ghSb, SW_SHOWNA);
 						CheckMenuItem(hMenu, IDM_VIEW_STB, MF_CHECKED);
 					}
-
-				break;
+					break;
+				case 300:
+					MessageBoxW(NULL, L"First Program", L"First", MB_OK);
+					break;
 			}	// switch(LOWORD(wParam))
 
 			break;
+		
 		case WM_SIZE:
-			GetClientRect(hwnd, &rcClient); 
-			rcParent = (LPRECT) lParam; 
-			MoveWindow(ghwndEdit, rcClient.top, rcClient.left, rcClient.right, rcClient.bottom, TRUE); 
-
+			break;
+		case WM_SIZING:
+			GetClientRect(hwnd, &rectParent);
+			//MoveWindow(ghwndEdit, rectParent.top, rectParent.left, rectParent.right, rectParent.bottom, 
+			//	FALSE);
+			SetWindowPos(ghwndEdit, 0, rectParent.top, rectParent.left, rectParent.right, rectParent.bottom, 0);
+			break;
+		case WM_EXITSIZEMOVE:
+			//GetClientRect(hwnd, &rectParent);
+			//MoveWindow(ghwndEdit, rectParent.top, rectParent.left, rectParent.right, rectParent.bottom, TRUE); 
 			break;
 		case WM_SETFOCUS:
-			SetFocus(GetDlgItem(hwnd, 0));
+			//SetFocus(GetDlgItem(hwnd, 0));
 			break;
 		case WM_RBUTTONUP:
 			point.x = LOWORD(lParam);
@@ -245,6 +296,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			DeleteObject(hFont);
 			DeleteObject(hFont_default);
 			DeleteObject(hBitmap);
+			FreeLibrary(hmod);
 			PostQuitMessage(0);
 			break;
 		return 0;
@@ -283,9 +335,9 @@ void AddMenus (HWND hwnd) {
 
 LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	UINT checked;
-	WCHAR buf_text[500];
-	
-	
+	int ctrlID = GetDlgCtrlID((HWND) lParam);
+	int requestID;
+	int position;
 	switch (msg) {
 		case WM_CREATE:
 			/*CreateWindow(TEXT("button"), TEXT("Ok"),
@@ -297,8 +349,8 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 		case WM_COMMAND:
 			switch (LOWORD(wParam)) {
 				case 600:
-					GetWindowTextW(hEdit, buf_text, 50);
-					SetWindowTextW(hLabel, buf_text);
+					GetWindowTextW(hEdit, buf, 50);
+					SetWindowTextW(hLabel, buf);
 					Beep(40, 50);
 					break;
 				case 650:
@@ -322,16 +374,26 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 			break;
 		case WM_SETFONT:
 			//MessageBoxW(NULL, L"Font set", L"First", MB_OK);
+			break;
+		case WM_HSCROLL:
+			ctrlID = GetDlgCtrlID((HWND) lParam);
+			requestID = LOWORD(wParam);
+			position = SendMessage((HWND) lParam, TBM_GETPOS, 0, 0);
+			switch (ctrlID) {
+				case 3001:
+					UpdateTrackBar((HWND) lParam);
+					break;
+			}
 			
 			break;
-		/*case WM_SIZE:
-			if (wParam != SIZE_MINIMIZED)
-				MoveWindow(GetDlgItem(hwnd, 0), 0, 0, LOWORD(lParam),HIWORD(lParam), TRUE);
-			break;*/
+		case WM_NOTIFY:
+			
+			break;
 		case WM_CLOSE:
 			DestroyWindow(hwnd);
 			break; 
-
+		case WM_DESTROY:
+			break;
 	}
 	
 	
@@ -457,19 +519,19 @@ void LoadFile (LPCWSTR file) {
 
 
 void CreateMyTooltip (HWND hwnd) {
-	INITCOMMONCONTROLSEX iccex; 
+	//INITCOMMONCONTROLSEX iccex; 
 	HWND hwndTT;
 	TOOLINFO ti;
 	RECT rect;
 	WCHAR tooltip[30] = L"A main window";
 
-	iccex.dwICC = ICC_WIN95_CLASSES;
-	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	InitCommonControlsEx(&iccex);
+	//iccex.dwICC = ICC_WIN95_CLASSES;
+	//iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	//InitCommonControlsEx(&iccex);
 
 	hwndTT = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, NULL,
-	WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,		
-	0, 0, 0, 0, hwnd, NULL, NULL, NULL );
+		WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,		
+		0, 0, 0, 0, hwnd, NULL, NULL, NULL );
 
 	SetWindowPos(hwndTT, HWND_TOPMOST, 0, 0, 0, 0,
 	SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
@@ -487,7 +549,49 @@ void CreateMyTooltip (HWND hwnd) {
 	ti.rect.right = rect.right;
 	ti.rect.bottom = rect.bottom;
 
-	SendMessage(hwndTT, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);	
+	SendMessageW(hwndTT, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);	
+}
+
+
+void CreateTrackBar(HWND hwnd)
+{
+	//INITCOMMONCONTROLSEX icex;
+	
+  HWND hLeftLabel = CreateWindowW(L"STATIC", L"0", 
+    WS_CHILD | WS_VISIBLE, 0, 0, 10, 30, hwnd, (HMENU)1, NULL, NULL);
+
+  HWND hRightLabel = CreateWindowW(L"STATIC", L"100", 
+    WS_CHILD | WS_VISIBLE, 0, 0, 30, 30, hwnd, (HMENU)2, NULL, NULL);
+
+  hlbl = CreateWindowW(L"STATIC", L"0", WS_CHILD | WS_VISIBLE, 
+    270, 20, 30, 30, hwnd, (HMENU)3, NULL, NULL);
+
+  
+  //InitCommonControlsEx(NULL);
+  //icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+  //icex.dwICC  = ICC_LISTVIEW_CLASSES;
+  //InitCommonControlsEx(&icex);
+
+  hTrack = CreateWindowW(L"msctls_trackbar32", L"Trackbar Control",
+      WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS | TBS_HORZ,
+      20, 150, 170, 30, hwnd, (HMENU) 3001, NULL, NULL);
+
+  SendMessageW(hTrack, TBM_SETRANGE,  TRUE, MAKELONG(0, 100));
+  SendMessageW(hTrack, TBM_SETPAGESIZE, 0,  10);
+  SendMessageW(hTrack, TBM_SETTICFREQ, 10, 0);
+  SendMessageW(hTrack, TBM_SETPOS, FALSE, 50);
+  SendMessageW(hTrack, TBM_SETBUDDY, TRUE, (LPARAM) hLeftLabel);
+  SendMessageW(hTrack, TBM_SETBUDDY, FALSE, (LPARAM) hRightLabel);
+
+}
+
+void UpdateTrackBar(HWND trackbar)
+{
+  LRESULT pos = SendMessageW(trackbar, TBM_GETPOS, 0, 0);
+  wchar_t buf[4];
+  wsprintfW(buf, L"%ld", pos);
+
+  SetWindowTextW(hlbl, buf);
 }
 
 
