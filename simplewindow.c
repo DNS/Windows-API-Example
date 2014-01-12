@@ -68,7 +68,8 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	MSG msg;
 	HWND hwnd;
 	WNDCLASSEXW wc;
-	
+	INITCOMMONCONTROLSEX iccex;
+
 	//memset(&wc, 0, sizeof(wc));
 	wc.cbSize = sizeof(WNDCLASSEXW);
 	wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -88,6 +89,13 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 		MessageBoxW(NULL, L"Window Registration Failed!", L"Error!", MB_ICONEXCLAMATION | MB_OK);
 		return -1;
 	}
+
+	iccex.dwICC = ICC_WIN95_CLASSES;
+	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	InitCommonControlsEx(&iccex);
+
+	//InitCommonControls();		// obsolete
+	InitCommonControlsEx(&iccex);
 
 	hwnd = CreateWindowExW(WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES , wc.lpszClassName, L"Title", 
 		WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, 
@@ -111,14 +119,20 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	static HWND hwndPanel;
 	HWND hwnd_tmp;
 	RECT rectParent;
-	INITCOMMONCONTROLSEX lpInitCtrls;
 
 	switch (msg) {
 		case WM_CREATE:
 			AddMenus(hwnd);
-			//InitCommonControls();		// deprecated
-			//InitCommonControlsEx(NULL);
-			ghSb = CreateStatusWindowW(WS_CHILD | WS_VISIBLE, L"Status bar title", hwnd, 1);
+			
+			
+			//ghSb = CreateStatusWindowW(WS_CHILD | WS_VISIBLE, L"Status bar title", hwnd, 5003);	// obsolete
+			
+			// STATUSCLASSNAME or "msctls_statusbar32"
+			ghSb = CreateWindowW(L"msctls_statusbar32", L"new Status bar title", 
+				WS_VISIBLE | WS_CHILD | WS_BORDER | SBARS_SIZEGRIP | CCS_BOTTOM,
+				0, 0, 0, 0, hwnd, (HMENU) 5003, NULL, NULL );
+			ShowWindow(ghSb, SW_HIDE);
+
 			RegisterDialogClass(hwnd);
 			CreateMyTooltip(hwnd);
 			
@@ -134,7 +148,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
 			hFont_default = CreateFontIndirect(&ncm.lfMessageFont);
 			
-			ghwndEdit = CreateWindowExW(WS_EX_RIGHTSCROLLBAR, L"EDIT", L"abcd",
+			ghwndEdit = CreateWindowW(L"EDIT", L"abcd",
 				WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE | ES_WANTRETURN | WS_CLIPCHILDREN,
 				0, 0, 260, 180, hwnd, NULL, NULL, NULL);
 				
@@ -142,14 +156,14 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 			/* // RICH EDIT CONTROL
 			LoadLibrary(TEXT("Msftedit.dll"));
-			ghwndEdit = CreateWindowExW(NULL, MSFTEDIT_CLASS, NULL,
+			ghwndEdit = CreateWindowW(MSFTEDIT_CLASS, NULL,
 				WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE |WS_HSCROLL | WS_VSCROLL |WS_BORDER | WS_TABSTOP ,
 				0, 0, 260, 180, hwnd, NULL, NULL, NULL);*/
 
 			/*// Scintilla
 			hmod = LoadLibraryW(L"SciLexer.DLL");
 			if (hmod != NULL) {
-				ghwndEdit = CreateWindowExW(NULL, L"Scintilla", L"abcd",
+				ghwndEdit = CreateWindowW(L"Scintilla", L"abcd",
 					WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_CLIPCHILDREN,
 					0, 0, 260, 180, hwnd, NULL, NULL, NULL);
 			} else {
@@ -310,7 +324,7 @@ void AddMenus (HWND hwnd) {
 	AppendMenuW(hMenu, MF_STRING, IDM_FILE_OPEN, L"&Open");
 
 	AppendMenuW(hMenu, MF_STRING, IDM_VIEW_STB, L"&Statusbar");
-	CheckMenuItem(hMenu, IDM_VIEW_STB, MF_CHECKED);
+	CheckMenuItem(hMenu, IDM_VIEW_STB, MF_UNCHECKED);	// MF_CHECKED, MF_UNCHECKED
 
 	AppendMenuW(hMenu, MF_STRING, IDM_FILE_DIALOG, L"&Dialog");
 	AppendMenuW(hMenu, MF_STRING, IDM_FILE_COLOR, L"&Color");
@@ -527,15 +541,10 @@ void LoadFile_internal (LPCWSTR file) {
 
 
 void CreateMyTooltip (HWND hwnd) {
-	//INITCOMMONCONTROLSEX iccex; 
 	HWND hwndTT;
 	TOOLINFO ti;
 	RECT rect;
 	WCHAR tooltip[30] = L"A main window";
-
-	//iccex.dwICC = ICC_WIN95_CLASSES;
-	//iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	//InitCommonControlsEx(&iccex);
 
 	hwndTT = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, NULL,
 		WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,		
