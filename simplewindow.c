@@ -23,9 +23,10 @@
 #define IDM_FILE_COLOR 6
 #define IDM_FILE_CONTROL 7
 
+WCHAR buf[500];
+
 HFONT defaultFont;
 HWND ghSb;
-
 HMENU hMenubar;
 HMENU hMenu;
 HINSTANCE ghInstance;
@@ -36,8 +37,9 @@ HBITMAP hBitmap;
 NONCLIENTMETRICS ncm;
 HWND hTrack;
 UINT hTrack_id;
-HWND hlbl;
-WCHAR buf[500];
+HWND hDebugLabel;
+HWND hMonthCal;
+
 
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
@@ -49,7 +51,7 @@ void RegisterPanel ();
 COLORREF ShowColorDialog (HWND);
 void CreateMenubar (HWND);
 void OpenDialog (HWND);
-void LoadFile (LPCWSTR);
+void LoadFile_internal (LPCWSTR);
 void CreateMyTooltip (HWND);
 void CreateTrackBar(HWND);
 void UpdateTrackBar();
@@ -67,7 +69,6 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	HWND hwnd;
 	WNDCLASSEXW wc;
 	
-
 	//memset(&wc, 0, sizeof(wc));
 	wc.cbSize = sizeof(WNDCLASSEXW);
 	wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -83,7 +84,6 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 	wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
-
 	if (!RegisterClassExW(&wc)) {
 		MessageBoxW(NULL, L"Window Registration Failed!", L"Error!", MB_ICONEXCLAMATION | MB_OK);
 		return -1;
@@ -93,16 +93,10 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 		WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, 
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
 
-	
-	
-	
-	
 	//ShowWindow(hwnd, nCmdShow);
 	//UpdateWindow(hwnd);
 
-	
-
-	while (GetMessageW(&msg, NULL, 0, 0) > 0) {   /* If no error is received... */
+	while (GetMessageW(&msg, NULL, 0, 0) > 0) { /* If no error is received... */
 		TranslateMessage(&msg);		/* Translate key codes to chars if present */
 		DispatchMessageW(&msg);		/* Send it to WndProc */
 	}
@@ -119,17 +113,15 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	RECT rectParent;
 	INITCOMMONCONTROLSEX lpInitCtrls;
 
-	
 	switch (msg) {
 		case WM_CREATE:
 			AddMenus(hwnd);
 			//InitCommonControls();		// deprecated
 			//InitCommonControlsEx(NULL);
-			//ghSb = CreateStatusWindowW(WS_CHILD | WS_VISIBLE, L"xxx", hwnd, 1);
+			ghSb = CreateStatusWindowW(WS_CHILD | WS_VISIBLE, L"Status bar title", hwnd, 1);
 			RegisterDialogClass(hwnd);
 			CreateMyTooltip(hwnd);
 			
-
 			// Delphi: Tahoma 13, .NET: Microsoft Sans Serif 14, System Default: Segoe UI
 			
 			// get custom font
@@ -181,8 +173,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 				case IDM_FILE_CONTROL:
 					hwnd_tmp = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_TOPMOST, L"DialogClass", 
 						L"Dialog Box", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
-						100, 100, 400, 550, hwnd, NULL, GetModuleHandle(NULL), NULL);
-					
+						100, 100, 800, 550, hwnd, NULL, GetModuleHandle(NULL), NULL);
 					
 					// default Height: Edit 21, Button 25, Static 13 
 					
@@ -196,6 +187,9 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					checkbox1 = CreateWindowW(L"BUTTON", L"This is Checkbox", 
 						WS_VISIBLE | WS_CHILD | BS_CHECKBOX, 
 						20, 10, 185, 14, hwnd_tmp, (HMENU) 700, NULL, NULL);
+
+					hDebugLabel = CreateWindowW(L"STATIC", L"0", WS_CHILD | WS_VISIBLE, 
+						270, 20, 90, 30, hwnd_tmp, (HMENU) 3004, NULL, NULL);
 
 					// EDIT ctrl: max 32,767 bytes
 					hEdit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"This is edit", 
@@ -217,20 +211,22 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					//ShowWindow(hwnd_tmp, SW_SHOW);	// already WS_VISIBLE
 
 					CreateTrackBar(hwnd_tmp);
-
-
+					// SysMonthCal32: 1. Standard 178, 156 + WS_BORDER; 2. Luna 230, 170;
+					hMonthCal = CreateWindowW(L"SysMonthCal32", L"",          
+						WS_VISIBLE | WS_CHILD,  
+						20, 200, 225, 160, hwnd_tmp, (HMENU) 4001, NULL, NULL);
 
 					// GroupBox
 					/*CreateWindowW(TEXT("button"), TEXT("Choose Color"), 
 							WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
 							10, 200, 120, 110, hwnd_tmp, (HMENU) 0, NULL, NULL);
-					  CreateWindowW(TEXT("button"), TEXT("Blue"),
+					CreateWindowW(TEXT("button"), TEXT("Blue"),
 							WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
 							20, 200, 100, 30, hwnd_tmp, (HMENU) 111 , NULL, NULL);
-					  CreateWindowW(TEXT("button"), TEXT("Yellow"),
+					CreateWindowW(TEXT("button"), TEXT("Yellow"),
 							WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
 							20, 200, 100, 30, hwnd_tmp, (HMENU) 112 , NULL, NULL);
-					  CreateWindowW(TEXT("button"), TEXT("Orange"),
+					CreateWindowW(TEXT("button"), TEXT("Orange"),
 							WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
 							20, 200, 100, 30, hwnd_tmp, (HMENU) 113 , NULL, NULL);
 					*/
@@ -335,9 +331,12 @@ void AddMenus (HWND hwnd) {
 
 LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	UINT checked;
-	int ctrlID = GetDlgCtrlID((HWND) lParam);
+	int ctrlID;
 	int requestID;
 	int position;
+	LPNMHDR lpNmHdr;
+	SYSTEMTIME time;
+
 	switch (msg) {
 		case WM_CREATE:
 			/*CreateWindow(TEXT("button"), TEXT("Ok"),
@@ -378,7 +377,7 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 		case WM_HSCROLL:
 			ctrlID = GetDlgCtrlID((HWND) lParam);
 			requestID = LOWORD(wParam);
-			position = SendMessage((HWND) lParam, TBM_GETPOS, 0, 0);
+			position = SendMessageW((HWND) lParam, TBM_GETPOS, 0, 0);
 			switch (ctrlID) {
 				case 3001:
 					UpdateTrackBar((HWND) lParam);
@@ -387,7 +386,16 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 			
 			break;
 		case WM_NOTIFY:
-			
+			lpNmHdr = (LPNMHDR) lParam;
+
+			if (lpNmHdr->code==MCN_SELECT) {
+				//ZeroMemory(&time, sizeof(SYSTEMTIME));
+				SendMessageW(hMonthCal, MCM_GETCURSEL, 0, (LPARAM) &time);
+  
+				swprintf(buf, 400, L"%d-%d-%d", time.wYear, time.wMonth, time.wDay);
+				SetWindowTextW(hDebugLabel, buf);
+
+			}
 			break;
 		case WM_CLOSE:
 			DestroyWindow(hwnd);
@@ -474,7 +482,7 @@ void CreateMenubar (HWND hwnd) {
 }
 
 void OpenDialog (HWND hwnd) {
-	OPENFILENAME ofn;
+	OPENFILENAMEW ofn;
 	TCHAR szFile[MAX_PATH];
 	 
 	ZeroMemory(&ofn, sizeof(ofn));
@@ -489,11 +497,11 @@ void OpenDialog (HWND hwnd) {
 	ofn.lpstrFileTitle = NULL;
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 	
-	if (GetOpenFileName(&ofn))
-		LoadFile(ofn.lpstrFile);
+	if (GetOpenFileNameW(&ofn))
+		LoadFile_internal(ofn.lpstrFile);
 }
 
-void LoadFile (LPCWSTR file) {
+void LoadFile_internal (LPCWSTR file) {
 	HANDLE hFile;
 	DWORD dwSize;
 	DWORD dw;
@@ -553,45 +561,39 @@ void CreateMyTooltip (HWND hwnd) {
 }
 
 
-void CreateTrackBar(HWND hwnd)
-{
+void CreateTrackBar (HWND hwnd) {
 	//INITCOMMONCONTROLSEX icex;
 	
-  HWND hLeftLabel = CreateWindowW(L"STATIC", L"0", 
-    WS_CHILD | WS_VISIBLE, 0, 0, 10, 30, hwnd, (HMENU)1, NULL, NULL);
+	HWND hLeftLabel = CreateWindowW(L"STATIC", L"0", 
+	WS_CHILD | WS_VISIBLE, 0, 0, 10, 30, hwnd, (HMENU)1, NULL, NULL);
 
-  HWND hRightLabel = CreateWindowW(L"STATIC", L"100", 
-    WS_CHILD | WS_VISIBLE, 0, 0, 30, 30, hwnd, (HMENU)2, NULL, NULL);
+	HWND hRightLabel = CreateWindowW(L"STATIC", L"100", 
+	WS_CHILD | WS_VISIBLE, 0, 0, 30, 30, hwnd, (HMENU)2, NULL, NULL);
 
-  hlbl = CreateWindowW(L"STATIC", L"0", WS_CHILD | WS_VISIBLE, 
-    270, 20, 30, 30, hwnd, (HMENU)3, NULL, NULL);
+	
 
-  
-  //InitCommonControlsEx(NULL);
-  //icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-  //icex.dwICC  = ICC_LISTVIEW_CLASSES;
-  //InitCommonControlsEx(&icex);
+	//InitCommonControlsEx(NULL);
+	//icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	//icex.dwICC= ICC_LISTVIEW_CLASSES;
+	//InitCommonControlsEx(&icex);
 
-  hTrack = CreateWindowW(L"msctls_trackbar32", L"Trackbar Control",
-      WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS | TBS_HORZ,
-      20, 150, 170, 30, hwnd, (HMENU) 3001, NULL, NULL);
+	hTrack = CreateWindowW(L"msctls_trackbar32", L"Trackbar Control",
+	WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS | TBS_HORZ,
+	20, 150, 170, 30, hwnd, (HMENU) 3001, NULL, NULL);
 
-  SendMessageW(hTrack, TBM_SETRANGE,  TRUE, MAKELONG(0, 100));
-  SendMessageW(hTrack, TBM_SETPAGESIZE, 0,  10);
-  SendMessageW(hTrack, TBM_SETTICFREQ, 10, 0);
-  SendMessageW(hTrack, TBM_SETPOS, FALSE, 50);
-  SendMessageW(hTrack, TBM_SETBUDDY, TRUE, (LPARAM) hLeftLabel);
-  SendMessageW(hTrack, TBM_SETBUDDY, FALSE, (LPARAM) hRightLabel);
-
+	SendMessageW(hTrack, TBM_SETRANGE,TRUE, MAKELONG(0, 100));
+	SendMessageW(hTrack, TBM_SETPAGESIZE, 0,10);
+	SendMessageW(hTrack, TBM_SETTICFREQ, 10, 0);
+	SendMessageW(hTrack, TBM_SETPOS, FALSE, 50);
+	SendMessageW(hTrack, TBM_SETBUDDY, TRUE, (LPARAM) hLeftLabel);
+	SendMessageW(hTrack, TBM_SETBUDDY, FALSE, (LPARAM) hRightLabel);
 }
 
-void UpdateTrackBar(HWND trackbar)
-{
-  LRESULT pos = SendMessageW(trackbar, TBM_GETPOS, 0, 0);
-  wchar_t buf[4];
-  wsprintfW(buf, L"%ld", pos);
+void UpdateTrackBar (HWND hTrackBar) {
+	LRESULT pos = SendMessageW(hTrackBar, TBM_GETPOS, 0, 0);
+	wsprintfW(buf, L"%ld", pos);
 
-  SetWindowTextW(hlbl, buf);
+	SetWindowTextW(hDebugLabel, buf);
 }
 
 
