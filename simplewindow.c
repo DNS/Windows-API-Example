@@ -13,7 +13,9 @@
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 	name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
 	processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
-	
+
+#pragma comment(lib, "Comctl32.lib")
+
 
 #define IDM_FILE_NEW 1
 #define IDM_FILE_OPEN 2
@@ -22,6 +24,11 @@
 #define IDM_FILE_DIALOG 5
 #define IDM_FILE_COLOR 6
 #define IDM_FILE_CONTROL 7
+
+
+#define ID_BLUE 6001
+#define ID_YELLOW 6002
+#define ID_ORANGE 6003
 
 WCHAR buf[500];
 
@@ -39,7 +46,7 @@ HWND hTrack;
 UINT hTrack_id;
 HWND hDebugLabel;
 HWND hMonthCal;
-
+COLORREF g_color;
 
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
@@ -90,7 +97,7 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 		return -1;
 	}
 
-	iccex.dwICC = ICC_WIN95_CLASSES;
+	iccex.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES;
 	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
 	InitCommonControlsEx(&iccex);
 
@@ -203,7 +210,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 						20, 10, 185, 14, hwnd_tmp, (HMENU) 700, NULL, NULL);
 
 					hDebugLabel = CreateWindowW(L"STATIC", L"0", WS_CHILD | WS_VISIBLE, 
-						270, 20, 90, 30, hwnd_tmp, (HMENU) 3004, NULL, NULL);
+						170, 20, 90, 30, hwnd_tmp, (HMENU) 3004, NULL, NULL);
 
 					// EDIT ctrl: max 32,767 bytes
 					hEdit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"This is edit", 
@@ -231,19 +238,19 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 						20, 200, 225, 160, hwnd_tmp, (HMENU) 4001, NULL, NULL);
 
 					// GroupBox
-					/*CreateWindowW(TEXT("button"), TEXT("Choose Color"), 
+					CreateWindowW(TEXT("button"), TEXT("Choose Color"), 
 							WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-							10, 200, 120, 110, hwnd_tmp, (HMENU) 0, NULL, NULL);
+							260, 20, 120, 150, hwnd_tmp, (HMENU) NULL, NULL, NULL);
 					CreateWindowW(TEXT("button"), TEXT("Blue"),
 							WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
-							20, 200, 100, 30, hwnd_tmp, (HMENU) 111 , NULL, NULL);
+							270, 40, 100, 30, hwnd_tmp, (HMENU) ID_BLUE, NULL, NULL);
 					CreateWindowW(TEXT("button"), TEXT("Yellow"),
 							WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
-							20, 200, 100, 30, hwnd_tmp, (HMENU) 112 , NULL, NULL);
+							270, 65, 100, 30, hwnd_tmp, (HMENU) ID_YELLOW, NULL, NULL);
 					CreateWindowW(TEXT("button"), TEXT("Orange"),
 							WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
-							20, 200, 100, 30, hwnd_tmp, (HMENU) 113 , NULL, NULL);
-					*/
+							270, 90, 100, 30, hwnd_tmp, (HMENU) ID_ORANGE, NULL, NULL);
+					
 					break;
 				case IDM_FILE_OPEN:
 					OpenDialog(hwnd);
@@ -383,7 +390,24 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 					SetWindowTextW(hwnd, L"asd");
 					break;
 			}
-				
+
+			if (HIWORD(wParam) == BN_CLICKED) {
+			   switch (LOWORD(wParam)) {
+				case ID_BLUE:
+					wcscpy(buf, L"blue");
+					SetWindowTextW(hDebugLabel, buf);
+					break;
+				case ID_YELLOW:
+					wcscpy(buf, L"yellow");
+					SetWindowTextW(hDebugLabel, buf);
+					break;
+				case ID_ORANGE:
+					wcscpy(buf, L"orange");
+					SetWindowTextW(hDebugLabel, buf);
+					break;
+			}
+			   
+			}
 			break;
 		case WM_SETFONT:
 			//MessageBoxW(NULL, L"Font set", L"First", MB_OK);
