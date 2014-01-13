@@ -408,7 +408,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			SendMessage(radiobtn2, BM_SETCHECK, BST_CHECKED, TRUE);		// set default value to radiobtn2
 
-			// ComboBox: CBS_DROPDOWN or CBS_DROPDOWNLIST
+			// ComboBox: CBS_DROPDOWN or CBS_DROPDOWNLIST, msg CB_SETCURSEL, CB_GETCURSEL
 			hCombo = CreateWindowW(TEXT("COMBOBOX"), NULL,
 				WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST,
 				410, 20, 120, 110, hwnd, NULL, NULL, NULL);
