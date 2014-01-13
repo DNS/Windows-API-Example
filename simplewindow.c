@@ -2,7 +2,6 @@
 /* force MSVC to use WideChar function, must be declared before #include <windows.h> */
 #define UNICODE
 
-
 #include <stdio.h>
 #include <windows.h>
 #include <commctrl.h>
@@ -34,6 +33,7 @@ HINSTANCE ghInstance;
 HWND ghwndEdit;
 HWND hEdit , hLabel, button1, button2, checkbox1;
 HWND radiobtn1, radiobtn2, radiobtn3;
+HWND hProgressBar;
 HFONT hfont1, hfont2, hfont3;
 HBITMAP hBitmap;
 NONCLIENTMETRICS ncm;
@@ -129,7 +129,6 @@ BOOL CALLBACK EnumFunc (HWND hwnd, LPARAM lParam) {
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	HWND hwnd_tmp;
-	MSG msg_tmp;
 	POINT point;
 	UINT state;
 	static HWND hwndPanel;
@@ -334,18 +333,19 @@ void AddMenus (HWND hwnd) {
 LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	HWND hwnd_parent;
 	UINT checked;
-	int ctrlID;
-	int requestID;
-	int position;
+	int ctrlID, requestID, position;
 	LPNMHDR lpNmHdr;
 	SYSTEMTIME time;
-	int sel;
+	int sel, i = 0;
 	BOOL ret;
 	WCHAR os_list[5][32] = {L"Windows 98 SE", L"Windows ME", L"Windows XP", L"Windows 7", L"Windows Phone 8"};
 
 	//IsDialogMessageW(hwnd, (LPMSG) &msg);
 	switch (msg) {
 		case WM_CREATE:
+			// macro: WC_STATIC, WC_BUTTON, WC_EDIT, WC_COMBOBOX, WC_SCROLLBAR, WC_LISTBOX
+			// string: without WC
+
 			// default Height: Edit 21, Button 25, Static 13, CheckBox 17 
 			hLabel = CreateWindowW(L"STATIC", L"This is Label", 
 				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
@@ -426,6 +426,16 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			SendMessageW(radiobtn1, WM_SETFONT, (WPARAM) hfont2, TRUE);
 			SendMessageW(radiobtn2, WM_SETFONT, (WPARAM) hfont2, TRUE);
 			SendMessageW(radiobtn3, WM_SETFONT, (WPARAM) hfont2, TRUE);
+
+			// PROGRESS_CLASS or L"msctls_progress32"
+			hProgressBar = CreateWindowW(L"msctls_progress32", NULL,
+				WS_CHILD | WS_VISIBLE | PBS_SMOOTH,
+				270, 200, 190, 25, hwnd, (HMENU) 7301, NULL, NULL);
+
+			SendMessageW(hProgressBar, PBM_SETRANGE, 0, MAKELPARAM(0, 100));
+			SendMessageW(hProgressBar, PBM_SETSTEP, 1, 0);
+			SendMessageW(hProgressBar, PBM_SETPOS, 100, 0);
+			
 			break;
 
 		case WM_COMMAND:
@@ -434,6 +444,11 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					GetWindowTextW(hEdit, buf, 50);
 					SetWindowTextW(hLabel, buf);
 					Beep(40, 50);
+
+					// change progress bar 
+					i = 0;
+					SendMessageW(hProgressBar, PBM_SETPOS, 0, 0);
+					SetTimer(hwnd, 8866, 0, NULL);
 					break;
 				case 650:
 					SendMessageW(hwnd, WM_CLOSE, 0, 0);
@@ -490,6 +505,12 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case WM_SETFOCUS:
 			break;
 		case WM_SETFONT:
+			break;
+		case WM_TIMER:
+			SendMessageW(hProgressBar, PBM_STEPIT, 0, 0);
+			i++;
+			if (i >= 100) 
+				KillTimer(hwnd, 8866);
 			break;
 		case WM_HSCROLL:
 			ctrlID = GetDlgCtrlID((HWND) lParam);
