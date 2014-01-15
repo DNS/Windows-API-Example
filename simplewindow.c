@@ -56,7 +56,7 @@ void CreateMenubar (HWND);
 void OpenDialog (HWND);
 void LoadFile_internal (LPCWSTR);
 void CreateMyTooltip (HWND);
-void CreateTrackBar(HWND);
+void CreateTrackBar (HWND);
 void UpdateTrackBar();
 void AddMenus (HWND);
 
@@ -74,7 +74,7 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	HWND hwnd;
 	WNDCLASSEXW wc;
 	INITCOMMONCONTROLSEX iccex;
-
+	
 	//memset(&wc, 0, sizeof(wc));
 	wc.cbSize = sizeof(WNDCLASSEXW);
 	wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -163,9 +163,9 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 			// get system default font (default: Segoe UI 15)
 			ncm.cbSize = sizeof(NONCLIENTMETRICS);
-			SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
+			SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
 
-			hfont2 = CreateFontIndirect(&ncm.lfMessageFont);
+			hfont2 = CreateFontIndirectW(&ncm.lfMessageFont);
 			
 			ghwndEdit = CreateWindowW(L"EDIT", L"abcd",
 				WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE | ES_WANTRETURN | WS_CLIPCHILDREN,
