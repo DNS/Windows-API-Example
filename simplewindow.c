@@ -42,6 +42,7 @@ UINT hTrack_id;
 HWND hDebugLabel;
 HWND hMonthCal, hCombo, groupbox1;
 HWND hDlgCurrent = NULL;
+HWND hTab, listbox1;
 
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
@@ -63,7 +64,7 @@ void AddMenus (HWND);
 HMODULE hmod;
 
 
-WCHAR buf[500];
+WCHAR sBuf[500];
 
 
 
@@ -84,11 +85,12 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	wc.hInstance = hInstance;
 	wc.lpszMenuName= NULL;
 	wc.lpszClassName = L"Window";
-	wc.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
-	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW);			// 9: light blue
-	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+	//wc.hbrBackground = COLOR_WINDOW;	// default window color
+	wc.hbrBackground = CreateSolidBrush(RGB(255, 0, 0));	// make something different
+	wc.hCursor = LoadCursorW(NULL, IDC_ARROW);	// Note: LoadCursor() superseded by LoadImage()
+	wc.hIcon = (HICON) LoadImageW(NULL, L"razor.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
+	wc.hIconSm = (HICON) LoadImageW(NULL, L"razor.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
+
 
 	if (!RegisterClassExW(&wc)) {
 		MessageBoxW(NULL, L"Window Registration Failed!", L"Error!", MB_ICONEXCLAMATION | MB_OK);
@@ -102,7 +104,8 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	//InitCommonControls();		// obsolete
 	InitCommonControlsEx(&iccex);
 
-	hwnd = CreateWindowExW(WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES | WS_EX_CONTROLPARENT, wc.lpszClassName, L"Title", 
+	hwnd = CreateWindowExW(WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES | WS_EX_CONTROLPARENT, 
+		wc.lpszClassName, L"Title", 
 		WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_TABSTOP, CW_USEDEFAULT, 
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
 	
@@ -123,8 +126,8 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 
 BOOL CALLBACK EnumFunc (HWND hwnd, LPARAM lParam) {
 	DestroyWindow(hwnd);
-	//SendMessageW(hwnd_tmp, WM_DESTROY, 0, 0);
-	//MessageBoxW(NULL, L"First Program", L"First", MB_OK);
+	SendMessageW(hwnd, WM_DESTROY, 0, 0);
+	return TRUE;
 }
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -338,23 +341,31 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	SYSTEMTIME time;
 	int sel, i = 0;
 	BOOL ret;
-	WCHAR os_list[5][32] = {L"Windows 98 SE", L"Windows ME", L"Windows XP", L"Windows 7", L"Windows Phone 8"};
+	TCITEMW tabItem1, tabItem2;
+	HANDLE hImg;
+	WCHAR os_list[5][32] = {L"MSDOS", L"Windows 98 SE", L"Windows ME", L"Windows XP", L"Windows 7"};
+	WCHAR os_other[6][32] = {L"UNIX", L"Linux", L"BSD", L"Plan 9", L"Mac OS X", L"IBM OS/2 WARP"};
 
 	//IsDialogMessageW(hwnd, (LPMSG) &msg);
 	switch (msg) {
 		case WM_CREATE:
+			// window class
 			// macro: WC_STATIC, WC_BUTTON, WC_EDIT, WC_COMBOBOX, WC_SCROLLBAR, WC_LISTBOX
-			// string: without WC
+			// value: "STATIC" "BUTTON" "EDIT" "COMBOBOX" "SCROLLBAR" "LISTBOX"
 
 			// default Height: Edit 21, Button 25, Static 13, CheckBox 17 
 			hLabel = CreateWindowW(L"STATIC", L"This is Label", 
 				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
 				20, 80, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
+
 			button1 = CreateWindowW(L"BUTTON", L"&Button", WS_VISIBLE | WS_CHILD | WS_TABSTOP,
-				20, 50, 80, 25, hwnd, (HMENU) 600, NULL, NULL);
+				20, 50, 90, 25, hwnd, (HMENU) 600, NULL, NULL);
+			hImg = LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
+			SendMessageW(button1, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM) hImg);
+			
 			button2 = CreateWindowW(L"BUTTON", L"&Quit", WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_DISABLED,
 				120, 50, 80, 25, hwnd, (HMENU) 650, NULL, NULL);
-			
+
 			checkbox1 = CreateWindowW(L"BUTTON", L"This is &Checkbox", 
 				WS_VISIBLE | WS_CHILD | BS_CHECKBOX | WS_TABSTOP, 
 				20, 10, 110, 17, hwnd, (HMENU) 700, NULL, NULL);
@@ -362,7 +373,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			//CheckDlgButton(hwnd, 700, BST_CHECKED);	// same below
 			SendMessageW(checkbox1, BM_SETCHECK, BST_CHECKED, 0);
 
-			hDebugLabel = CreateWindowW(L"STATIC", L"Debug Label", WS_CHILD | WS_VISIBLE, 
+			hDebugLabel = CreateWindowW(L"STATIC", L"Debug Label !!!", WS_CHILD | WS_VISIBLE, 
 				550, 20, 200, 13, hwnd, (HMENU) 3111, NULL, NULL);
 
 			// EDIT ctrl: max 32,767 bytes
@@ -412,12 +423,13 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			hCombo = CreateWindowW(TEXT("COMBOBOX"), NULL,
 				WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST,
 				410, 20, 120, 110, hwnd, NULL, NULL, NULL);
+
+			SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM) L"MSDOS");
 			SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM) L"Windows 98 SE");
 			SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM) L"Windows ME");
 			SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM) L"Windows XP");
 			SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM) L"Windows 7");
-			SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM) L"Windows Phone 8");
-
+			
 			SendMessageW(hCombo, CB_SETCURSEL, 3, 0);	// set default index for ComboBox
 			
 			// set font
@@ -430,19 +442,50 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			// PROGRESS_CLASS or L"msctls_progress32"
 			hProgressBar = CreateWindowW(L"msctls_progress32", NULL,
 				WS_CHILD | WS_VISIBLE | PBS_SMOOTH,
-				270, 200, 190, 25, hwnd, (HMENU) 7301, NULL, NULL);
+				20, 380, 190, 25, hwnd, (HMENU) 7301, NULL, NULL);
 
 			SendMessageW(hProgressBar, PBM_SETRANGE, 0, MAKELPARAM(0, 100));
 			SendMessageW(hProgressBar, PBM_SETSTEP, 1, 0);
 			SendMessageW(hProgressBar, PBM_SETPOS, 100, 0);
+
+			// WC_TABCONTROL or "SysTabControl32"
+			hTab = CreateWindowW(L"SysTabControl32", NULL, WS_CHILD | WS_VISIBLE,
+				400, 70, 250, 250, hwnd, (HMENU) 2444, NULL, NULL);
+
+			tabItem1.mask = TCIF_TEXT;
+			tabItem1.pszText = L"Tab 1";
+
+			tabItem2.mask = TCIF_TEXT;
+			tabItem2.pszText = L"Tab 2";
+
+			SendMessageW(hTab, TCM_INSERTITEM, 0, (LPARAM) &tabItem1);
+			SendMessageW(hTab, TCM_INSERTITEM, 1, (LPARAM) &tabItem2);
+
+
+			// CW_LISTBOX or "LISTBOX"
+			listbox1 = CreateWindowExW(WS_EX_CLIENTEDGE, L"LISTBOX", NULL, WS_CHILD | WS_VISIBLE | LBS_NOTIFY | LBS_HASSTRINGS,
+				260, 200, 120, 120, hwnd, (HMENU) 3555, NULL, NULL);
+
 			
+			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"UNIX");
+			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"Linux");
+			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"BSD");
+			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"Plan 9");
+			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"Mac OS X");
+			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"IBM OS/2 WARP");
+
+
+			// set font
+			SendMessageW(hTab, WM_SETFONT, (WPARAM) hfont1, TRUE);
+			SendMessageW(listbox1, WM_SETFONT, (WPARAM) hfont1, TRUE);
+
 			break;
 
 		case WM_COMMAND:
 			switch (LOWORD(wParam)) {
 				case 600:
-					GetWindowTextW(hEdit, buf, 50);
-					SetWindowTextW(hLabel, buf);
+					GetWindowTextW(hEdit, sBuf, 50);
+					SetWindowTextW(hLabel, sBuf);
 					Beep(40, 50);
 
 					// change progress bar 
@@ -466,31 +509,42 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				case 800:
 					SetWindowTextW(hwnd, L"asd");
 					break;
+				case 3555:
+					i = SendMessageW(listbox1, LB_GETCURSEL, 0, 0);
+
+					SendMessageW(listbox1, LB_GETTEXT, i, (LPARAM) &sBuf);	// fetch from listbox1 Control (much better)
+					//wcscpy(sBuf, os_other[i]);	// fetch from local sBuffer
+					
+					SetWindowTextW(hDebugLabel, sBuf);
+					break;
 			}
 
+
+			// GroupBox-RadioButton msg
 			if (HIWORD(wParam) == BN_CLICKED) {
 				switch (LOWORD(wParam)) {
 					case 6001:
-						wcscpy(buf, L"blue");
-						SetWindowTextW(hDebugLabel, buf);
+						wcscpy(sBuf, L"blue");
+						SetWindowTextW(hDebugLabel, sBuf);
 						break;
 					case 6002:
-						wcscpy(buf, L"yellow");
-						SetWindowTextW(hDebugLabel, buf);
+						wcscpy(sBuf, L"yellow");
+						SetWindowTextW(hDebugLabel, sBuf);
 						break;
 					case 6003:
-						wcscpy(buf, L"orange");
-						SetWindowTextW(hDebugLabel, buf);
+						wcscpy(sBuf, L"orange");
+						SetWindowTextW(hDebugLabel, sBuf);
 						break;
 				}
 			}
 
+			// ComboBox msg
 			if (HIWORD(wParam) == CBN_SELCHANGE) {
-				sel = SendMessageW(hCombo, CB_GETCURSEL, 0, 0);
-				SendMessageW(hCombo, CB_GETLBTEXT, sel, (LPARAM) buf);
+				i = SendMessageW(hCombo, CB_GETCURSEL, 0, 0);
+				SendMessageW(hCombo, CB_GETLBTEXT, i, (LPARAM) sBuf);
 				
-				SetWindowTextW(hDebugLabel, buf);			// fetch from ComboBox Control (much better)
-				//SetWindowTextW(hDebugLabel, os_list[sel]);	// from local buffer
+				SetWindowTextW(hDebugLabel, sBuf);			// fetch from hCombo (much better)
+				//SetWindowTextW(hDebugLabel, os_list[i]);	// fetch from local sBuffer
 				
 				SetFocus(hwnd);
 			}
@@ -528,8 +582,8 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			if (lpNmHdr->code == MCN_SELECT) {
 				ZeroMemory(&time, sizeof(SYSTEMTIME));
 				SendMessageW(hMonthCal, MCM_GETCURSEL, 0, (LPARAM) &time);
-				swprintf(buf, 400, L"%d-%d-%d", time.wYear, time.wMonth, time.wDay);
-				SetWindowTextW(hDebugLabel, buf);
+				swprintf(sBuf, 400, L"%d-%d-%d", time.wYear, time.wMonth, time.wDay);
+				SetWindowTextW(hDebugLabel, sBuf);
 			}
 			break;
 		case WM_CLOSE:
@@ -537,6 +591,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			ret = EnableWindow(hwnd_parent, TRUE);
 			
 			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"First", MB_OK);
+			//DeleteObject(hImg);
 			DestroyWindow(hwnd);
 			break; 
 		case WM_DESTROY:
@@ -687,24 +742,24 @@ void LoadFile_internal (LPCWSTR file) {
 	HANDLE hFile;
 	DWORD dwSize;
 	DWORD dw;
-	LPBYTE lpBuffer;
-	WCHAR ws_buf[5000] = {0};		/* BUG: buffer overflow ! */
+	LPBYTE lpsBuffer;
+	WCHAR ws_sBuf[5000] = {0};		/* BUG: sBuffer overflow ! */
 
 	/* string consisting of several Asian characters */
 	wchar_t wcsString[] = L"\u9580\u961c\u9640\u963f\u963b\u9644";
 
 	hFile = CreateFileW((LPCWSTR) file, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	dwSize = GetFileSize(hFile, NULL);
-	lpBuffer = (LPBYTE) HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, dwSize + 1);
-	ReadFile(hFile, lpBuffer, dwSize, &dw, NULL);
+	lpsBuffer = (LPBYTE) HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, dwSize + 1);
+	ReadFile(hFile, lpsBuffer, dwSize, &dw, NULL);
 	CloseHandle(hFile);
-	//lpBuffer[dwSize] = 0;
+	//lpsBuffer[dwSize] = 0;
 
-	MultiByteToWideChar(CP_UTF8, 0, (LPCCH) lpBuffer, dwSize, ws_buf, dwSize);
-	SetWindowTextW(ghwndEdit, (LPWSTR) ws_buf);		// BUG HERE, replace lpBuffer with L"abcd text"
-	//MessageBoxW(NULL, ws_buf, L"First", MB_OK);
+	MultiByteToWideChar(CP_UTF8, 0, (LPCCH) lpsBuffer, dwSize, ws_sBuf, dwSize);
+	SetWindowTextW(ghwndEdit, (LPWSTR) ws_sBuf);		// BUG HERE, replace lpsBuffer with L"abcd text"
+	//MessageBoxW(NULL, ws_sBuf, L"First", MB_OK);
 
-	HeapFree(GetProcessHeap(), 0, lpBuffer);
+	HeapFree(GetProcessHeap(), 0, lpsBuffer);
 }
 
 
@@ -768,9 +823,9 @@ void CreateTrackBar (HWND hwnd) {
 
 void UpdateTrackBar (HWND hTrackBar) {
 	LRESULT pos = SendMessageW(hTrackBar, TBM_GETPOS, 0, 0);
-	wsprintfW(buf, L"%ld", pos);
+	wsprintfW(sBuf, L"%ld", pos);
 
-	SetWindowTextW(hDebugLabel, buf);
+	SetWindowTextW(hDebugLabel, sBuf);
 }
 
 
