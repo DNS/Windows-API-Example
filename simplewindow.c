@@ -7,13 +7,15 @@
 #include <commctrl.h>
 #include <richedit.h>
 
-
+//#include <Gdiplus.h>
+//#include <gdiplusflat.h>
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 	name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
 	processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 #pragma comment(lib, "Comctl32.lib")
+//#pragma comment(lib, "gdiplus.lib")
 
 
 #define IDM_FILE_NEW 1
@@ -27,8 +29,7 @@
 
 HFONT defaultFont;
 HWND ghSb;
-HMENU hMenubar;
-HMENU hMenu;
+HMENU hMenubar, hMenu, submenu1;
 HINSTANCE ghInstance;
 HWND ghwndEdit;
 HWND hEdit , hLabel, button1, button2, checkbox1;
@@ -43,6 +44,7 @@ HWND hDebugLabel;
 HWND hMonthCal, hCombo, groupbox1;
 HWND hDlgCurrent = NULL;
 HWND hTab, listbox1;
+HANDLE hImg;
 
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
@@ -64,13 +66,13 @@ void AddMenus (HWND);
 HMODULE hmod;
 
 
-WCHAR sBuf[500];
+WCHAR s_buf[500];
 
 
 
 COLORREF gColor = RGB(255, 255, 255);
 
-int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
+INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 	MSG msg;
 	HWND hwnd;
 	WNDCLASSEXW wc;
@@ -91,15 +93,14 @@ int WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	wc.hIcon = (HICON) LoadImageW(NULL, L"razor.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
 	wc.hIconSm = (HICON) LoadImageW(NULL, L"razor.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
 
+	iccex.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES;
+	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	InitCommonControlsEx(&iccex);
 
 	if (!RegisterClassExW(&wc)) {
 		MessageBoxW(NULL, L"Window Registration Failed!", L"Error!", MB_ICONEXCLAMATION | MB_OK);
 		return -1;
 	}
-
-	iccex.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES;
-	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	InitCommonControlsEx(&iccex);
 
 	//InitCommonControls();		// obsolete
 	InitCommonControlsEx(&iccex);
@@ -255,7 +256,8 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			}	// switch(LOWORD(wParam))
 
 			break;
-		
+		case WM_ACTIVATE:
+			break;
 		case WM_SIZE:
 			break;
 		case WM_SIZING:
@@ -288,8 +290,6 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			//EnumWindows(EnumFunc, lParam);
 			DestroyWindow(hwnd);
 			break;
-		case WM_SYSCOMMAND:
-			break;
 		case WM_DESTROY:
 			DeleteObject(hfont1);
 			DeleteObject(hfont2);
@@ -307,6 +307,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 
 void AddMenus (HWND hwnd) {
+	submenu1 = CreateMenu();
 	hMenubar = CreateMenu();
 	hMenu = CreateMenu();
 
@@ -319,15 +320,20 @@ void AddMenus (HWND hwnd) {
 	AppendMenuW(hMenu, MF_STRING, IDM_FILE_DIALOG, L"&Dialog");
 	AppendMenuW(hMenu, MF_STRING, IDM_FILE_COLOR, L"&Color");
 
+	AppendMenuW(submenu1, MF_STRING, 5553, L"&Test 123");
+	AppendMenuW(hMenu, MF_POPUP, (UINT_PTR) submenu1, L"&Submenu1");
+
 	AppendMenuW(hMenu, MF_STRING, IDM_FILE_CONTROL, L"&Control");
 
 	AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
 	AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
 
-	hBitmap = (HBITMAP) LoadImageW( NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	
+	AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR) hMenu, L"&File");
+
+	hBitmap = (HBITMAP) LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	SetMenuItemBitmaps(hMenu, IDM_FILE_OPEN, MF_BITMAP | MF_BYCOMMAND, hBitmap, hBitmap);
 
-	AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR) hMenu, L"&File");
 
 	SetMenu(hwnd, hMenubar);
 }
@@ -342,7 +348,9 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	int sel, i = 0;
 	BOOL ret;
 	TCITEMW tabItem1, tabItem2;
-	HANDLE hImg;
+	PAINTSTRUCT ps;
+	RECT r;
+	HDC hdc;
 	WCHAR os_list[5][32] = {L"MSDOS", L"Windows 98 SE", L"Windows ME", L"Windows XP", L"Windows 7"};
 	WCHAR os_other[6][32] = {L"UNIX", L"Linux", L"BSD", L"Plan 9", L"Mac OS X", L"IBM OS/2 WARP"};
 
@@ -484,8 +492,8 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case WM_COMMAND:
 			switch (LOWORD(wParam)) {
 				case 600:
-					GetWindowTextW(hEdit, sBuf, 50);
-					SetWindowTextW(hLabel, sBuf);
+					GetWindowTextW(hEdit, s_buf, 50);
+					SetWindowTextW(hLabel, s_buf);
 					Beep(40, 50);
 
 					// change progress bar 
@@ -512,10 +520,10 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				case 3555:
 					i = SendMessageW(listbox1, LB_GETCURSEL, 0, 0);
 
-					SendMessageW(listbox1, LB_GETTEXT, i, (LPARAM) &sBuf);	// fetch from listbox1 Control (much better)
-					//wcscpy(sBuf, os_other[i]);	// fetch from local sBuffer
+					SendMessageW(listbox1, LB_GETTEXT, i, (LPARAM) &s_buf);	// fetch from listbox1 Control (much better)
+					//wcscpy(s_buf, os_other[i]);	// fetch from local sBuffer
 					
-					SetWindowTextW(hDebugLabel, sBuf);
+					SetWindowTextW(hDebugLabel, s_buf);
 					break;
 			}
 
@@ -524,16 +532,16 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			if (HIWORD(wParam) == BN_CLICKED) {
 				switch (LOWORD(wParam)) {
 					case 6001:
-						wcscpy(sBuf, L"blue");
-						SetWindowTextW(hDebugLabel, sBuf);
+						wcscpy(s_buf, L"blue");
+						SetWindowTextW(hDebugLabel, s_buf);
 						break;
 					case 6002:
-						wcscpy(sBuf, L"yellow");
-						SetWindowTextW(hDebugLabel, sBuf);
+						wcscpy(s_buf, L"yellow");
+						SetWindowTextW(hDebugLabel, s_buf);
 						break;
 					case 6003:
-						wcscpy(sBuf, L"orange");
-						SetWindowTextW(hDebugLabel, sBuf);
+						wcscpy(s_buf, L"orange");
+						SetWindowTextW(hDebugLabel, s_buf);
 						break;
 				}
 			}
@@ -541,9 +549,9 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			// ComboBox msg
 			if (HIWORD(wParam) == CBN_SELCHANGE) {
 				i = SendMessageW(hCombo, CB_GETCURSEL, 0, 0);
-				SendMessageW(hCombo, CB_GETLBTEXT, i, (LPARAM) sBuf);
+				SendMessageW(hCombo, CB_GETLBTEXT, i, (LPARAM) s_buf);
 				
-				SetWindowTextW(hDebugLabel, sBuf);			// fetch from hCombo (much better)
+				SetWindowTextW(hDebugLabel, s_buf);			// fetch from hCombo (much better)
 				//SetWindowTextW(hDebugLabel, os_list[i]);	// fetch from local sBuffer
 				
 				SetFocus(hwnd);
@@ -582,19 +590,36 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			if (lpNmHdr->code == MCN_SELECT) {
 				ZeroMemory(&time, sizeof(SYSTEMTIME));
 				SendMessageW(hMonthCal, MCM_GETCURSEL, 0, (LPARAM) &time);
-				swprintf(sBuf, 400, L"%d-%d-%d", time.wYear, time.wMonth, time.wDay);
-				SetWindowTextW(hDebugLabel, sBuf);
+				swprintf(s_buf, 400, L"%d-%d-%d", time.wYear, time.wMonth, time.wDay);
+				SetWindowTextW(hDebugLabel, s_buf);
 			}
+			break;
+		case WM_PAINT:
+			hdc = BeginPaint(hwnd, &ps);
+
+			GetClientRect(hwnd, &r);
+
+			for (i=0; i<1000; i++) {
+				int x, y;
+				x = (rand() % r.right - r.left);
+				y = (rand() % r.bottom - r.top);
+				SetPixel(hdc, x, y, RGB(0, 0, 255));
+			}
+
+			EndPaint(hwnd, &ps);
 			break;
 		case WM_CLOSE:
 			hwnd_parent = GetWindow(hwnd, GW_OWNER);
 			ret = EnableWindow(hwnd_parent, TRUE);
-			
 			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"First", MB_OK);
-			//DeleteObject(hImg);
 			DestroyWindow(hwnd);
+			
+			ShowWindow(hwnd_parent, SW_RESTORE);
+			ShowWindow(hwnd_parent, SW_SHOW);
+
 			break; 
 		case WM_DESTROY:
+			DeleteObject(hImg);
 			break;
 	}
 	
@@ -823,9 +848,9 @@ void CreateTrackBar (HWND hwnd) {
 
 void UpdateTrackBar (HWND hTrackBar) {
 	LRESULT pos = SendMessageW(hTrackBar, TBM_GETPOS, 0, 0);
-	wsprintfW(sBuf, L"%ld", pos);
+	wsprintfW(s_buf, L"%ld", pos);
 
-	SetWindowTextW(hDebugLabel, sBuf);
+	SetWindowTextW(hDebugLabel, s_buf);
 }
 
 
