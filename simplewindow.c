@@ -26,7 +26,7 @@
 
 HFONT defaultFont;
 HWND ghSb;
-HMENU hMenubar, hMenu, submenu1;
+HMENU hMenubar, hMenu, submenu1, hMenubar2, hMenu2;
 HINSTANCE ghInstance;
 HWND ghwndEdit;
 HWND hEdit , hLabel, button1, button2, checkbox1;
@@ -43,6 +43,7 @@ HWND hDlgCurrent = NULL;
 HWND hTab, listbox1;
 HWND rebar1, toolbar1;
 HANDLE hImg;
+HMODULE hmod;
 
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
@@ -60,9 +61,9 @@ void CreateMyTooltip (HWND);
 void CreateTrackBar (HWND);
 void UpdateTrackBar();
 void AddMenus (HWND);
-HWND CreateAToolBar (HWND);
+HWND BuildToolBar (HWND);
 
-HMODULE hmod;
+
 
 
 WCHAR s_buf[500];
@@ -86,13 +87,13 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	wc.hInstance = hInstance;
 	wc.lpszMenuName= NULL;
 	wc.lpszClassName = L"Window";
-	//wc.hbrBackground = COLOR_WINDOW;	// default window color
-	wc.hbrBackground = CreateSolidBrush(RGB(255, 0, 0));	// make something different
+	wc.hbrBackground = (HBRUSH) COLOR_WINDOW;	// default window color
+	//wc.hbrBackground = CreateSolidBrush(RGB(255, 0, 0));	// make something different
 	wc.hCursor = LoadCursorW(NULL, IDC_ARROW);	// Note: LoadCursor() superseded by LoadImage()
 	wc.hIcon = (HICON) LoadImageW(NULL, L"razor.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
 	wc.hIconSm = (HICON) LoadImageW(NULL, L"razor.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
 
-	iccex.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES;
+	iccex.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES | ICC_BAR_CLASSES;
 	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
 	InitCommonControlsEx(&iccex);
 
@@ -140,6 +141,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 	switch (msg) {
 		case WM_CREATE:
+			hBitmap = (HBITMAP) LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 			AddMenus(hwnd);
 			
 			
@@ -151,7 +153,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 				0, 0, 0, 0, hwnd, (HMENU) 5003, NULL, NULL );
 			ShowWindow(ghSb, SW_HIDE);
 
-			
+			BuildToolBar(hwnd);
 			CreateMyTooltip(hwnd);
 			
 			// Delphi: Tahoma 13, .NET: Microsoft Sans Serif 14, System Default: Segoe UI 15
@@ -172,7 +174,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			
 			ghwndEdit = CreateWindowW(L"EDIT", L"abcd",
 				WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE | ES_WANTRETURN | WS_CLIPCHILDREN,
-				0, 0, 260, 180, hwnd, NULL, NULL, NULL);
+				50, 50, 260, 180, hwnd, NULL, NULL, NULL);
 				
 			//SendMessageW(ghwndEdit, WM_SETFONT, (WPARAM) hfont1, TRUE);
 
@@ -331,7 +333,7 @@ void AddMenus (HWND hwnd) {
 	
 	AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR) hMenu, L"&File");
 
-	hBitmap = (HBITMAP) LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	
 	SetMenuItemBitmaps(hMenu, IDM_FILE_OPEN, MF_BITMAP | MF_BYCOMMAND, hBitmap, hBitmap);
 
 
@@ -352,7 +354,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	RECT r;
 	HDC hdc;
 	WCHAR os_list[5][32] = {L"MSDOS", L"Windows 98 SE", L"Windows ME", L"Windows XP", L"Windows 7"};
-	WCHAR os_other[6][32] = {L"UNIX", L"Linux", L"BSD", L"Plan 9", L"Mac OS X", L"IBM OS/2 WARP"};
+	WCHAR os_other[6][32] = {L"UNIX", L"Linux", L"BSD", L"Plan 9", L"Mac OS X", L"OS/2 WARP"};
 
 	//IsDialogMessageW(hwnd, (LPMSG) &msg);
 	switch (msg) {
@@ -480,7 +482,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"BSD");
 			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"Plan 9");
 			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"Mac OS X");
-			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"IBM OS/2 WARP");
+			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"OS/2 WARP");
 
 
 			// set font
@@ -559,10 +561,10 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			break;
 		case WM_ACTIVATE:
-			if (0 == wParam) // becoming inactive
-hDlgCurrent = NULL;
-else // becoming active
-hDlgCurrent = hwnd;
+			if (0 == wParam)		// becoming inactive
+				hDlgCurrent = NULL;
+			else					// becoming active
+				hDlgCurrent = hwnd;
 			break;
 		case WM_SETFOCUS:
 			break;
@@ -603,7 +605,7 @@ hDlgCurrent = hwnd;
 				int x, y;
 				x = (rand() % r.right - r.left);
 				y = (rand() % r.bottom - r.top);
-				SetPixel(hdc, x, y, RGB(0, 0, 255));
+				SetPixel(hdc, x, y, RGB(255, 0, 0));
 			}
 
 			EndPaint(hwnd, &ps);
@@ -642,16 +644,16 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 	RECT rc;
 	TBBUTTONINFO tbi;
 	LPTBBUTTONINFO lptbbi;
-
+	TBADDBITMAP tb_bmp;
 	switch (msg) {
 		case WM_CREATE:
 			// default Height: Edit 21, Button 25, Static 13
 			hLabel = CreateWindowW(L"STATIC", L"This is Label", 
 				WS_CHILD | WS_VISIBLE | SS_LEFT, 
-				20, 20, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
+				20, 120, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
 
 			// REBARCLASSNAME or "ReBarWindow32"
-			rebar1 = CreateWindowExW(WS_EX_TOOLWINDOW, L"ReBarWindow32", L"This is Label", 
+			/*rebar1 = CreateWindowExW(WS_EX_TOOLWINDOW, L"ReBarWindow32", L"This is Label", 
 				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | RBS_VARHEIGHT | CCS_NODIVIDER, 
 				20, 20, 150, 13, hwnd, (HMENU) 1460, NULL, NULL);
 
@@ -671,29 +673,20 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 			rbBand.cxMinChild = 0;
 			rbBand.cyMinChild = rc.bottom - rc.top;
 			rbBand.cx = 200;
+			*/
+			
 			
 
-			toolbar1 = CreateWindowW(TOOLBARCLASSNAME, L"This is Label", 
-				WS_CHILD | WS_VISIBLE, 
-				20, 20, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
+			BuildToolBar(hwnd);
 
-			wcscpy(s_buf, L"test 123");
-			tbi.dwMask = TBIF_TEXT;
-			tbi.cbSize = sizeof (TBBUTTONINFO);
-			tbi.pszText = s_buf;
-			tbi.cchText = sizeof (s_buf);
 
-			SendMessage(toolbar1, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
-			
-			SendMessage(toolbar1, TB_SETBUTTONINFO, 4303, (LPARAM) (LPTBBUTTONINFO) &tbi);
-
-			hMenubar = CreateMenu();
-			hMenu = CreateMenu();
-
-			AppendMenuW(hMenu, MF_STRING, 1074, L"&File");
-			AppendMenuW(hMenu, MF_STRING, 1075, L"&Save As");
-
-			SetMenu(hwnd, hMenubar);
+			// add menu to Dialog
+			hMenubar2 = CreateMenu();
+			hMenu2 = CreateMenu();
+			AppendMenuW(hMenu2, MF_STRING, 1074, L"&Open");
+			AppendMenuW(hMenu2, MF_STRING, 1075, L"&Save As");
+			AppendMenuW(hMenubar2, MF_POPUP, (UINT_PTR) hMenu, L"&File");
+			SetMenu(hwnd, hMenubar2);
 
 			break;
 
@@ -749,7 +742,7 @@ COLORREF ShowColorDialog (HWND hwnd) {
 	cc.lpCustColors = (LPDWORD) crCustClr;
 	cc.rgbResult = RGB(0, 255, 0);
 	cc.Flags = CC_FULLOPEN | CC_RGBINIT;
-	ChooseColor(&cc);
+	ChooseColorW(&cc);
 
 	return cc.rgbResult;
 }
@@ -757,10 +750,10 @@ COLORREF ShowColorDialog (HWND hwnd) {
 
 void RegisterPanel () {
 	WNDCLASS rwc = {0};
-	rwc.lpszClassName = TEXT( "Panel" );
+	rwc.lpszClassName = L"Panel";
 	rwc.hbrBackground = (HBRUSH) GetStockObject(WHITE_BRUSH);
 	rwc.lpfnWndProc = PanelProc;
-	RegisterClass(&rwc);
+	RegisterClassW(&rwc);
 }
 
 LRESULT CALLBACK PanelProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -783,16 +776,7 @@ LRESULT CALLBACK PanelProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 
-void CreateMenubar (HWND hwnd) {
-	HMENU hMenubar;
-	HMENU hMenu;
 
-	hMenubar = CreateMenu();
-	hMenu = CreateMenu();
-	AppendMenu(hMenubar, MF_POPUP, (UINT_PTR)hMenu, TEXT("&File"));
-	AppendMenu(hMenu, MF_STRING, IDM_FILE_NEW, TEXT("&Open"));
-	SetMenu(hwnd, hMenubar);
-}
 
 void OpenDialog (HWND hwnd) {
 	OPENFILENAMEW ofn;
@@ -829,11 +813,9 @@ void LoadFile_internal (LPCWSTR file) {
 	lpsBuffer = (LPBYTE) HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, dwSize + 1);
 	ReadFile(hFile, lpsBuffer, dwSize, &dw, NULL);
 	CloseHandle(hFile);
-	//lpsBuffer[dwSize] = 0;
 
 	MultiByteToWideChar(CP_UTF8, 0, (LPCCH) lpsBuffer, dwSize, ws_sBuf, dwSize);
-	SetWindowTextW(ghwndEdit, (LPWSTR) ws_sBuf);		// BUG HERE, replace lpsBuffer with L"abcd text"
-	//MessageBoxW(NULL, ws_sBuf, L"First", MB_OK);
+	SetWindowTextW(ghwndEdit, (LPWSTR) ws_sBuf);		// BUG: buffer overflow, replace lpsBuffer with L"abcd text"
 
 	HeapFree(GetProcessHeap(), 0, lpsBuffer);
 }
@@ -870,20 +852,13 @@ void CreateMyTooltip (HWND hwnd) {
 
 
 void CreateTrackBar (HWND hwnd) {
-	//INITCOMMONCONTROLSEX icex;
+	HWND hLeftLabel, hRightLabel;
 	
-	HWND hLeftLabel = CreateWindowW(L"STATIC", L"0", 
+	hLeftLabel = CreateWindowW(L"STATIC", L"0", 
 	WS_CHILD | WS_VISIBLE, 0, 0, 10, 30, hwnd, (HMENU)1, NULL, NULL);
 
-	HWND hRightLabel = CreateWindowW(L"STATIC", L"100", 
+	hRightLabel = CreateWindowW(L"STATIC", L"100", 
 	WS_CHILD | WS_VISIBLE, 0, 0, 30, 30, hwnd, (HMENU)2, NULL, NULL);
-
-	
-
-	//InitCommonControlsEx(NULL);
-	//icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	//icex.dwICC= ICC_LISTVIEW_CLASSES;
-	//InitCommonControlsEx(&icex);
 
 	hTrack = CreateWindowW(L"msctls_trackbar32", L"Trackbar Control",
 	WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS | TBS_HORZ,
@@ -904,101 +879,51 @@ void UpdateTrackBar (HWND hTrackBar) {
 	SetWindowTextW(hDebugLabel, s_buf);
 }
 
-HWND CreateAToolBar(HWND hwndParent) 
-{ 
-   HWND hwndTB; 
-   TBADDBITMAP tbab; 
-   TBBUTTON tbb[3];
-   int iCut, iCopy, iPaste;
-   INITCOMMONCONTROLSEX icex;
-   HRESULT hr;
-   size_t cch;
-   int MAX_LEN = 499;
-// Ensure that the common control DLL is loaded. 
-   icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-   icex.dwICC  = ICC_BAR_CLASSES;
-   InitCommonControlsEx(&icex);
 
-// Create a toolbar. 
-   hwndTB = CreateWindowExW(0, TOOLBARCLASSNAME, (LPWSTR) NULL, 
-        WS_CHILD | CCS_ADJUSTABLE, 0, 0, 0, 0, hwndParent, 
-		(HMENU) 2005, GetModuleHandleW(NULL), NULL); 
+HWND BuildToolBar (HWND hwnd) {
+    HWND hToolBar;
+    TBBUTTON tbb[4];
+    TBADDBITMAP tbab;
 
-// Send the TB_BUTTONSTRUCTSIZE message, which is required for 
-// backward compatibility. 
-   SendMessage(hwndTB, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0); 
+	// TOOLBARCLASSNAME or "ToolBarWindow32"
+    hToolBar = CreateWindowW(TOOLBARCLASSNAME, NULL, 
+		WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TBSTYLE_TOOLTIPS |
+		TBSTYLE_FLAT | CCS_TOP | BTNS_AUTOSIZE | TBSTYLE_TRANSPARENT, 
+		0, 0, 0, 0, hwnd, (HMENU) 7711, GetModuleHandle(NULL), NULL);
+    SendMessageW(hToolBar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
+    SendMessageW(hToolBar, TB_SETEXTENDEDSTYLE, 0, (LPARAM) TBSTYLE_EX_HIDECLIPPEDBUTTONS);
 
-// Add the button strings to the toolbar's internal string list. 
-   LoadString(GetModuleHandleW(NULL), 203, s_buf, MAX_LEN-1); 
-//Save room for second terminating null character.
-   hr = wcslen(s_buf);
-   if(SUCCEEDED(hr))
-   {
-   //s_buf[cch + 2] = 0;  //Double-null terminate.
-   }
-   else
-   {
-   // TODO: Write error handler.
-   } 
-   iCut = SendMessage(hwndTB, TB_ADDSTRING, 0, (LPARAM) (LPSTR) s_buf); 
-   LoadStringW(GetModuleHandleW(NULL), 201, s_buf, MAX_LEN-1);  
-//Save room for second terminating null character.
-   hr = wcslen(s_buf);
-   if(SUCCEEDED(hr))
-   {
-   //s_buf[cch + 2] = 0;  //Double-null terminate.
-   }
-   else
-   {
-   // TODO: Write error handler.
-   } 
-   iCopy = SendMessage(hwndTB, TB_ADDSTRING, (WPARAM) 0, 
-       (LPARAM) (LPSTR) s_buf); 
-   LoadStringW(GetModuleHandleW(NULL), 202, s_buf, MAX_LEN-1);  
-//Save room for second terminating null character.
-   hr = wcslen(s_buf);
-   if(SUCCEEDED(hr))
-   {
-   //s_buf[cch + 2] = 0;  //Double-null terminate.
-   }
-   else
-   {
-   // TODO: Write error handler.
-   } 
-   iPaste = SendMessage(hwndTB, TB_ADDSTRING, (WPARAM) 0, 
-        (LPARAM) (LPSTR) s_buf); 
- 
-// Fill the TBBUTTON array with button information, and add the 
-// buttons to the toolbar. The buttons on this toolbar have text 
-// but do not have bitmap images. 
-   tbb[0].iBitmap = I_IMAGENONE; 
-   tbb[0].idCommand = 203; 
-   tbb[0].fsState = TBSTATE_ENABLED; 
-   tbb[0].fsStyle = BTNS_BUTTON; 
-   tbb[0].dwData = 0; 
-   tbb[0].iString = iCut; 
- 
-   tbb[1].iBitmap = I_IMAGENONE; 
-   tbb[1].idCommand = 201; 
-   tbb[1].fsState = TBSTATE_ENABLED; 
-   tbb[1].fsStyle = BTNS_BUTTON; 
-   tbb[1].dwData = 0; 
-   tbb[1].iString = iCopy; 
+    tbab.hInst = NULL;	//HINST_COMMCTRL;
+	tbab.nID = (UINT_PTR) hBitmap;	//IDB_STD_SMALL_COLOR;
 
-   tbb[2].iBitmap = I_IMAGENONE; 
-   tbb[2].idCommand = 202; 
-   tbb[2].fsState = TBSTATE_ENABLED; 
-   tbb[2].fsStyle = BTNS_BUTTON; 
-   tbb[2].dwData = 0; 
-   tbb[2].iString = iPaste; 
+    SendMessageW(hToolBar, TB_ADDBITMAP, 300, (LPARAM) &tbab);
 
-   SendMessage(hwndTB, TB_ADDBUTTONS, (WPARAM) 115, 
-        (LPARAM) (LPTBBUTTON) &tbb); 
+    ZeroMemory(tbb, sizeof(tbb));
+    tbb[0].iBitmap = 0;	//STD_FILENEW;
+    tbb[0].fsState = TBSTATE_ENABLED;
+    tbb[0].fsStyle = TBSTYLE_BUTTON;
+    tbb[0].idCommand = IDM_FILE_NEW;
 
-   SendMessage(hwndTB, TB_AUTOSIZE, 0, 0); 
+    tbb[1].iBitmap = 0;	//STD_FILEOPEN;
+    tbb[1].fsState = TBSTATE_ENABLED;
+    tbb[1].fsStyle = TBSTYLE_BUTTON;
+    tbb[1].idCommand = IDM_FILE_OPEN;
 
-   ShowWindow(hwndTB, SW_SHOW); 
-   return hwndTB; 
-} 
+	tbb[2].iBitmap = 0;	//STD_FILESAVE;
+    tbb[2].fsState = TBSTATE_ENABLED;
+    tbb[2].fsStyle = TBSTYLE_SEP;		// TBSTYLE_SEP
+    tbb[2].idCommand = IDM_FILE_QUIT;
+
+    tbb[3].iBitmap = 0;	//STD_FILESAVE;
+    tbb[3].fsState = TBSTATE_ENABLED;
+    tbb[3].fsStyle = TBSTYLE_BUTTON;
+    tbb[3].idCommand = IDM_FILE_QUIT;
+
+    SendMessageW(hToolBar, TB_SETBUTTONSIZE, (WPARAM)0, (LPARAM)MAKELONG(24, 22));
+    SendMessageW(hToolBar, TB_ADDBUTTONS, sizeof(tbb) / sizeof(TBBUTTON), (LPARAM)&tbb);
+    SendMessageW(hToolBar, TB_AUTOSIZE, 0, 0);
+
+	return hToolBar;
+}
 
 // MessageBoxW(NULL, L"First Program", L"First", MB_OK);
