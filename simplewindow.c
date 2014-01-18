@@ -7,15 +7,12 @@
 #include <commctrl.h>
 #include <richedit.h>
 
-//#include <Gdiplus.h>
-//#include <gdiplusflat.h>
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 	name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
 	processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 #pragma comment(lib, "Comctl32.lib")
-//#pragma comment(lib, "gdiplus.lib")
 
 
 #define IDM_FILE_NEW 1
@@ -44,6 +41,7 @@ HWND hDebugLabel;
 HWND hMonthCal, hCombo, groupbox1;
 HWND hDlgCurrent = NULL;
 HWND hTab, listbox1;
+HWND rebar1, toolbar1;
 HANDLE hImg;
 
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
@@ -62,6 +60,7 @@ void CreateMyTooltip (HWND);
 void CreateTrackBar (HWND);
 void UpdateTrackBar();
 void AddMenus (HWND);
+HWND CreateAToolBar (HWND);
 
 HMODULE hmod;
 
@@ -132,7 +131,7 @@ BOOL CALLBACK EnumFunc (HWND hwnd, LPARAM lParam) {
 }
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	HWND hwnd_tmp;
+	HWND hwnd_control, hwnd_dialog;
 	POINT point;
 	UINT state;
 	static HWND hwndPanel;
@@ -204,13 +203,14 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					memset(&wc, 0, sizeof(wc));
 					wc.cbSize = sizeof(WNDCLASSEX);
 					wc.lpfnWndProc = (WNDPROC) DialogProc;
-					wc.hInstance = GetModuleHandle(NULL);
+					wc.hInstance = GetModuleHandleW(NULL);
 					wc.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
 					wc.lpszClassName = L"DialogClass";
 					RegisterClassExW(&wc);
-					CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_TOPMOST, TEXT("DialogClass"), 
-						TEXT("Dialog Box"), WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 100, 100, 200, 150, 
-						hwnd, (HMENU) NULL, GetModuleHandle(NULL),NULL);
+					hwnd_dialog = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_TOPMOST, 
+						L"DialogClass", L"Dialog Box", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
+						100, 100, 400, 400, 
+						hwnd, (HMENU) NULL, GetModuleHandleW(NULL),NULL);
 					break;
 				case IDM_FILE_COLOR:
 					gColor = ShowColorDialog(hwnd);
@@ -226,7 +226,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					wc.lpszClassName = L"ControlClass";
 					RegisterClassExW(&wc);
 					
-					hwnd_tmp = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT, L"ControlClass", 
+					hwnd_control = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT, L"ControlClass", 
 						L"Dialog Box", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 800, 550, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
 
@@ -559,10 +559,10 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			break;
 		case WM_ACTIVATE:
-			if (0 == wParam)             // becoming inactive
-               hDlgCurrent = NULL;
-            else                         // becoming active
-               hDlgCurrent = hwnd;
+			if (0 == wParam) // becoming inactive
+hDlgCurrent = NULL;
+else // becoming active
+hDlgCurrent = hwnd;
 			break;
 		case WM_SETFOCUS:
 			break;
@@ -637,6 +637,11 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 	LPNMHDR lpNmHdr;
 	SYSTEMTIME time;
 	int sel;
+	REBARINFO rbi;
+	REBARBANDINFO rbBand;
+	RECT rc;
+	TBBUTTONINFO tbi;
+	LPTBBUTTONINFO lptbbi;
 
 	switch (msg) {
 		case WM_CREATE:
@@ -644,6 +649,52 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 			hLabel = CreateWindowW(L"STATIC", L"This is Label", 
 				WS_CHILD | WS_VISIBLE | SS_LEFT, 
 				20, 20, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
+
+			// REBARCLASSNAME or "ReBarWindow32"
+			rebar1 = CreateWindowExW(WS_EX_TOOLWINDOW, L"ReBarWindow32", L"This is Label", 
+				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | RBS_VARHEIGHT | CCS_NODIVIDER, 
+				20, 20, 150, 13, hwnd, (HMENU) 1460, NULL, NULL);
+
+			rbi.cbSize = sizeof(REBARINFO);
+			rbi.fMask = 0;
+			rbi.himl = (HIMAGELIST)NULL;
+			rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
+			rbBand.fMask  = RBBIM_COLORS | RBBIM_TEXT | RBBIM_BACKGROUND | 
+				RBBIM_STYLE | RBBIM_CHILD  | RBBIM_CHILDSIZE | 
+				RBBIM_SIZE;
+			rbBand.fStyle = RBBS_CHILDEDGE | RBBS_FIXEDBMP;
+			rbBand.hbmBack = NULL;
+
+			GetWindowRect(hwnd, &rc);
+			rbBand.lpText = L"test 123";
+			rbBand.hwndChild  = hLabel;
+			rbBand.cxMinChild = 0;
+			rbBand.cyMinChild = rc.bottom - rc.top;
+			rbBand.cx = 200;
+			
+
+			toolbar1 = CreateWindowW(TOOLBARCLASSNAME, L"This is Label", 
+				WS_CHILD | WS_VISIBLE, 
+				20, 20, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
+
+			wcscpy(s_buf, L"test 123");
+			tbi.dwMask = TBIF_TEXT;
+			tbi.cbSize = sizeof (TBBUTTONINFO);
+			tbi.pszText = s_buf;
+			tbi.cchText = sizeof (s_buf);
+
+			SendMessage(toolbar1, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
+			
+			SendMessage(toolbar1, TB_SETBUTTONINFO, 4303, (LPARAM) (LPTBBUTTONINFO) &tbi);
+
+			hMenubar = CreateMenu();
+			hMenu = CreateMenu();
+
+			AppendMenuW(hMenu, MF_STRING, 1074, L"&File");
+			AppendMenuW(hMenu, MF_STRING, 1075, L"&Save As");
+
+			SetMenu(hwnd, hMenubar);
+
 			break;
 
 		case WM_COMMAND:
@@ -853,6 +904,101 @@ void UpdateTrackBar (HWND hTrackBar) {
 	SetWindowTextW(hDebugLabel, s_buf);
 }
 
+HWND CreateAToolBar(HWND hwndParent) 
+{ 
+   HWND hwndTB; 
+   TBADDBITMAP tbab; 
+   TBBUTTON tbb[3];
+   int iCut, iCopy, iPaste;
+   INITCOMMONCONTROLSEX icex;
+   HRESULT hr;
+   size_t cch;
+   int MAX_LEN = 499;
+// Ensure that the common control DLL is loaded. 
+   icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+   icex.dwICC  = ICC_BAR_CLASSES;
+   InitCommonControlsEx(&icex);
 
+// Create a toolbar. 
+   hwndTB = CreateWindowExW(0, TOOLBARCLASSNAME, (LPWSTR) NULL, 
+        WS_CHILD | CCS_ADJUSTABLE, 0, 0, 0, 0, hwndParent, 
+		(HMENU) 2005, GetModuleHandleW(NULL), NULL); 
+
+// Send the TB_BUTTONSTRUCTSIZE message, which is required for 
+// backward compatibility. 
+   SendMessage(hwndTB, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0); 
+
+// Add the button strings to the toolbar's internal string list. 
+   LoadString(GetModuleHandleW(NULL), 203, s_buf, MAX_LEN-1); 
+//Save room for second terminating null character.
+   hr = wcslen(s_buf);
+   if(SUCCEEDED(hr))
+   {
+   //s_buf[cch + 2] = 0;  //Double-null terminate.
+   }
+   else
+   {
+   // TODO: Write error handler.
+   } 
+   iCut = SendMessage(hwndTB, TB_ADDSTRING, 0, (LPARAM) (LPSTR) s_buf); 
+   LoadStringW(GetModuleHandleW(NULL), 201, s_buf, MAX_LEN-1);  
+//Save room for second terminating null character.
+   hr = wcslen(s_buf);
+   if(SUCCEEDED(hr))
+   {
+   //s_buf[cch + 2] = 0;  //Double-null terminate.
+   }
+   else
+   {
+   // TODO: Write error handler.
+   } 
+   iCopy = SendMessage(hwndTB, TB_ADDSTRING, (WPARAM) 0, 
+       (LPARAM) (LPSTR) s_buf); 
+   LoadStringW(GetModuleHandleW(NULL), 202, s_buf, MAX_LEN-1);  
+//Save room for second terminating null character.
+   hr = wcslen(s_buf);
+   if(SUCCEEDED(hr))
+   {
+   //s_buf[cch + 2] = 0;  //Double-null terminate.
+   }
+   else
+   {
+   // TODO: Write error handler.
+   } 
+   iPaste = SendMessage(hwndTB, TB_ADDSTRING, (WPARAM) 0, 
+        (LPARAM) (LPSTR) s_buf); 
+ 
+// Fill the TBBUTTON array with button information, and add the 
+// buttons to the toolbar. The buttons on this toolbar have text 
+// but do not have bitmap images. 
+   tbb[0].iBitmap = I_IMAGENONE; 
+   tbb[0].idCommand = 203; 
+   tbb[0].fsState = TBSTATE_ENABLED; 
+   tbb[0].fsStyle = BTNS_BUTTON; 
+   tbb[0].dwData = 0; 
+   tbb[0].iString = iCut; 
+ 
+   tbb[1].iBitmap = I_IMAGENONE; 
+   tbb[1].idCommand = 201; 
+   tbb[1].fsState = TBSTATE_ENABLED; 
+   tbb[1].fsStyle = BTNS_BUTTON; 
+   tbb[1].dwData = 0; 
+   tbb[1].iString = iCopy; 
+
+   tbb[2].iBitmap = I_IMAGENONE; 
+   tbb[2].idCommand = 202; 
+   tbb[2].fsState = TBSTATE_ENABLED; 
+   tbb[2].fsStyle = BTNS_BUTTON; 
+   tbb[2].dwData = 0; 
+   tbb[2].iString = iPaste; 
+
+   SendMessage(hwndTB, TB_ADDBUTTONS, (WPARAM) 115, 
+        (LPARAM) (LPTBBUTTON) &tbb); 
+
+   SendMessage(hwndTB, TB_AUTOSIZE, 0, 0); 
+
+   ShowWindow(hwndTB, SW_SHOW); 
+   return hwndTB; 
+} 
 
 // MessageBoxW(NULL, L"First Program", L"First", MB_OK);
