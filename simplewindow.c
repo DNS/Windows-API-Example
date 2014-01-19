@@ -26,7 +26,7 @@
 
 HFONT defaultFont;
 HWND ghSb;
-HMENU hMenubar, hMenu, submenu1, hMenubar2, hMenu2;
+HMENU hMenubar1, hMenu1, submenu1, hMenubar2, hMenu2, hPopUp1;
 HINSTANCE ghInstance;
 HWND ghwndEdit;
 HWND hEdit , hLabel, button1, button2, checkbox1;
@@ -49,6 +49,7 @@ LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK ControlProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PanelProc (HWND, UINT, WPARAM, LPARAM);
+BOOL CALLBACK EnumChildWindow(HWND hwnd, LPARAM lParam);
 
 void CreateDialogBox (HWND);
 void RegisterDialogClass (HWND);
@@ -62,7 +63,7 @@ void CreateTrackBar (HWND);
 void UpdateTrackBar();
 void AddMenus (HWND);
 HWND BuildToolBar (HWND);
-
+HWND WINAPI CreateRebar (HWND);
 
 
 
@@ -75,7 +76,7 @@ COLORREF gColor = RGB(255, 255, 255);
 INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 	MSG msg;
 	HWND hwnd;
-	WNDCLASSEXW wc;
+	WNDCLASSEX wc;
 	INITCOMMONCONTROLSEX iccex;
 	
 	//memset(&wc, 0, sizeof(wc));
@@ -93,17 +94,16 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	wc.hIcon = (HICON) LoadImageW(NULL, L"razor.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
 	wc.hIconSm = (HICON) LoadImageW(NULL, L"razor.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
 
-	iccex.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES | ICC_BAR_CLASSES;
+	iccex.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES;
 	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	//InitCommonControls();		// obsolete
 	InitCommonControlsEx(&iccex);
 
 	if (!RegisterClassExW(&wc)) {
 		MessageBoxW(NULL, L"Window Registration Failed!", L"Error!", MB_ICONEXCLAMATION | MB_OK);
 		return -1;
 	}
-
-	//InitCommonControls();		// obsolete
-	InitCommonControlsEx(&iccex);
+	
 
 	hwnd = CreateWindowExW(WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES | WS_EX_CONTROLPARENT, 
 		wc.lpszClassName, L"Title", 
@@ -125,7 +125,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 }
 
 
-BOOL CALLBACK EnumFunc (HWND hwnd, LPARAM lParam) {
+BOOL CALLBACK EnumChildWindow(HWND hwnd, LPARAM lParam) {
 	DestroyWindow(hwnd);
 	SendMessageW(hwnd, WM_DESTROY, 0, 0);
 	return TRUE;
@@ -175,7 +175,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			ghwndEdit = CreateWindowW(L"EDIT", L"abcd",
 				WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE | ES_WANTRETURN | WS_CLIPCHILDREN,
 				50, 50, 260, 180, hwnd, NULL, NULL, NULL);
-				
+			
 			//SendMessageW(ghwndEdit, WM_SETFONT, (WPARAM) hfont1, TRUE);
 
 			/* // RICH EDIT CONTROL
@@ -210,7 +210,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					wc.lpszClassName = L"DialogClass";
 					RegisterClassExW(&wc);
 					hwnd_dialog = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_TOPMOST, 
-						L"DialogClass", L"Dialog Box", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
+						L"DialogClass", L"Dialog, ToolBar, & Rebar", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 400, 400, 
 						hwnd, (HMENU) NULL, GetModuleHandleW(NULL),NULL);
 					break;
@@ -243,13 +243,13 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					SendMessageW(hwnd, WM_CLOSE, 0, 0);
 					break;
 				case IDM_VIEW_STB:
-					state = GetMenuState(hMenu, IDM_VIEW_STB, MF_BYCOMMAND);
+					state = GetMenuState(hMenu1, IDM_VIEW_STB, MF_BYCOMMAND);
 					if (state == SW_SHOWNA) {
 						ShowWindow(ghSb, SW_HIDE);
-						CheckMenuItem(hMenu, IDM_VIEW_STB, MF_UNCHECKED);
+						CheckMenuItem(hMenu1, IDM_VIEW_STB, MF_UNCHECKED);
 					} else {
 						ShowWindow(ghSb, SW_SHOWNA);
-						CheckMenuItem(hMenu, IDM_VIEW_STB, MF_CHECKED);
+						CheckMenuItem(hMenu1, IDM_VIEW_STB, MF_CHECKED);
 					}
 					break;
 				case 300:
@@ -275,16 +275,16 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		case WM_RBUTTONUP:
 			point.x = LOWORD(lParam);
 			point.y = HIWORD(lParam);
-			hMenu = CreatePopupMenu();
+			hPopUp1 = CreatePopupMenu();
 			ClientToScreen(hwnd, &point);
 
-			AppendMenuW(hMenu, MF_STRING, IDM_FILE_NEW, L"&New");
-			AppendMenuW(hMenu, MF_STRING, IDM_FILE_OPEN, L"&Open");
-			AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
-			AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
+			AppendMenuW(hPopUp1, MF_STRING, IDM_FILE_NEW, L"&New");
+			AppendMenuW(hPopUp1, MF_STRING, IDM_FILE_OPEN, L"&Open");
+			AppendMenuW(hPopUp1, MF_SEPARATOR, 0, NULL);
+			AppendMenuW(hPopUp1, MF_STRING, IDM_FILE_QUIT, L"&Quit");
 
-			TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, point.x, point.y, 0, hwnd, NULL);
-			DestroyMenu(hMenu);
+			TrackPopupMenu(hPopUp1, TPM_RIGHTBUTTON, point.x, point.y, 0, hwnd, NULL);
+			DestroyMenu(hPopUp1);
 			break;
 		case WM_LBUTTONDOWN:
 			break;
@@ -310,34 +310,34 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 void AddMenus (HWND hwnd) {
 	submenu1 = CreateMenu();
-	hMenubar = CreateMenu();
-	hMenu = CreateMenu();
+	hMenubar1 = CreateMenu();
+	hMenu1 = CreateMenu();
 
-	AppendMenuW(hMenu, MF_STRING, IDM_FILE_NEW, L"&New");
-	AppendMenuW(hMenu, MF_STRING, IDM_FILE_OPEN, L"&Open");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_NEW, L"&New");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_OPEN, L"&Open");
 
-	AppendMenuW(hMenu, MF_STRING, IDM_VIEW_STB, L"&Statusbar");
-	CheckMenuItem(hMenu, IDM_VIEW_STB, MF_UNCHECKED);	// MF_CHECKED, MF_UNCHECKED
+	AppendMenuW(hMenu1, MF_STRING, IDM_VIEW_STB, L"&Statusbar");
+	CheckMenuItem(hMenu1, IDM_VIEW_STB, MF_UNCHECKED);	// MF_CHECKED, MF_UNCHECKED
 
-	AppendMenuW(hMenu, MF_STRING, IDM_FILE_DIALOG, L"&Dialog");
-	AppendMenuW(hMenu, MF_STRING, IDM_FILE_COLOR, L"&Color");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_DIALOG, L"&Dialog, ToolBar, && Rebar");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_COLOR, L"&Color");
 
 	AppendMenuW(submenu1, MF_STRING, 5553, L"&Test 123");
-	AppendMenuW(hMenu, MF_POPUP, (UINT_PTR) submenu1, L"&Submenu1");
+	AppendMenuW(hMenu1, MF_POPUP, (UINT_PTR) submenu1, L"&Submenu1");
 
-	AppendMenuW(hMenu, MF_STRING, IDM_FILE_CONTROL, L"&Control");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_CONTROL, L"&Control");
 
-	AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
-	AppendMenuW(hMenu, MF_STRING, IDM_FILE_QUIT, L"&Quit");
-
-	
-	AppendMenuW(hMenubar, MF_POPUP, (UINT_PTR) hMenu, L"&File");
+	AppendMenuW(hMenu1, MF_SEPARATOR, 0, NULL);
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_QUIT, L"&Quit");
 
 	
-	SetMenuItemBitmaps(hMenu, IDM_FILE_OPEN, MF_BITMAP | MF_BYCOMMAND, hBitmap, hBitmap);
+	AppendMenuW(hMenubar1, MF_POPUP, (UINT_PTR) hMenu1, L"&File");
+
+	
+	SetMenuItemBitmaps(hMenu1, IDM_FILE_OPEN, MF_BITMAP | MF_BYCOMMAND, hBitmap, hBitmap);
 
 
-	SetMenu(hwnd, hMenubar);
+	SetMenu(hwnd, hMenubar1);
 }
 
 
@@ -347,7 +347,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	int ctrlID, requestID, position;
 	LPNMHDR lpNmHdr;
 	SYSTEMTIME time;
-	int sel, i = 0;
+	int i = 0;
 	BOOL ret;
 	TCITEMW tabItem1, tabItem2;
 	PAINTSTRUCT ps;
@@ -632,19 +632,11 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 
 LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	UINT checked;
 	int ctrlID;
 	int requestID;
 	int position;
-	LPNMHDR lpNmHdr;
-	SYSTEMTIME time;
-	int sel;
-	REBARINFO rbi;
-	REBARBANDINFO rbBand;
-	RECT rc;
-	TBBUTTONINFO tbi;
-	LPTBBUTTONINFO lptbbi;
-	TBADDBITMAP tb_bmp;
+
+
 	switch (msg) {
 		case WM_CREATE:
 			// default Height: Edit 21, Button 25, Static 13
@@ -652,32 +644,17 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 				WS_CHILD | WS_VISIBLE | SS_LEFT, 
 				20, 120, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
 
+			toolbar1 = BuildToolBar(hwnd);
+
+
 			// REBARCLASSNAME or "ReBarWindow32"
-			/*rebar1 = CreateWindowExW(WS_EX_TOOLWINDOW, L"ReBarWindow32", L"This is Label", 
+		/*	rebar1 = CreateWindowExW(WS_EX_TOOLWINDOW, L"ReBarWindow32", L"This is Label", 
 				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | RBS_VARHEIGHT | CCS_NODIVIDER, 
-				20, 20, 150, 13, hwnd, (HMENU) 1460, NULL, NULL);
+				20, 20, 150, 13, hwnd, (HMENU) 1460, NULL, NULL);*/
 
-			rbi.cbSize = sizeof(REBARINFO);
-			rbi.fMask = 0;
-			rbi.himl = (HIMAGELIST)NULL;
-			rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
-			rbBand.fMask  = RBBIM_COLORS | RBBIM_TEXT | RBBIM_BACKGROUND | 
-				RBBIM_STYLE | RBBIM_CHILD  | RBBIM_CHILDSIZE | 
-				RBBIM_SIZE;
-			rbBand.fStyle = RBBS_CHILDEDGE | RBBS_FIXEDBMP;
-			rbBand.hbmBack = NULL;
-
-			GetWindowRect(hwnd, &rc);
-			rbBand.lpText = L"test 123";
-			rbBand.hwndChild  = hLabel;
-			rbBand.cxMinChild = 0;
-			rbBand.cyMinChild = rc.bottom - rc.top;
-			rbBand.cx = 200;
-			*/
 			
+			CreateRebar(hwnd);
 			
-
-			BuildToolBar(hwnd);
 
 
 			// add menu to Dialog
@@ -685,7 +662,7 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 			hMenu2 = CreateMenu();
 			AppendMenuW(hMenu2, MF_STRING, 1074, L"&Open");
 			AppendMenuW(hMenu2, MF_STRING, 1075, L"&Save As");
-			AppendMenuW(hMenubar2, MF_POPUP, (UINT_PTR) hMenu, L"&File");
+			AppendMenuW(hMenubar2, MF_POPUP, (UINT_PTR) hMenu2, L"&File");
 			SetMenu(hwnd, hMenubar2);
 
 			break;
@@ -920,10 +897,78 @@ HWND BuildToolBar (HWND hwnd) {
     tbb[3].idCommand = IDM_FILE_QUIT;
 
     SendMessageW(hToolBar, TB_SETBUTTONSIZE, (WPARAM)0, (LPARAM)MAKELONG(24, 22));
-    SendMessageW(hToolBar, TB_ADDBUTTONS, sizeof(tbb) / sizeof(TBBUTTON), (LPARAM)&tbb);
+    SendMessageW(hToolBar, TB_ADDBUTTONS, sizeof(tbb) / sizeof(TBBUTTON), (LPARAM) &tbb);
     SendMessageW(hToolBar, TB_AUTOSIZE, 0, 0);
-
+	
 	return hToolBar;
 }
 
+
+HWND WINAPI CreateRebar (HWND hwndOwner)
+{
+	REBARINFO     rbi;
+	REBARBANDINFO rbBand;
+	RECT          rc;
+	HWND   hwndCB, hwndRB;
+	DWORD  dwBtnSize;
+
+	hwndRB = CreateWindowExW(WS_EX_TOOLWINDOW,
+		REBARCLASSNAME,
+		NULL,
+		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS |
+		WS_CLIPCHILDREN | RBS_VARHEIGHT |
+		CCS_NODIVIDER,
+		0, 0, 0, 0,
+		hwndOwner,
+		NULL,
+		GetModuleHandleW(NULL),
+		NULL);
+	if (!hwndRB)
+		return NULL;
+	// Initialize and send the REBARINFO structure.
+	rbi.cbSize = sizeof(REBARINFO);  // Required when using this
+	// structure.
+	rbi.fMask = 0;
+	rbi.himl = (HIMAGELIST)NULL;
+	if (!SendMessageW(hwndRB, RB_SETBARINFO, 0, (LPARAM)&rbi))
+		return NULL;
+	// Initialize structure members that both bands will share.
+	rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
+	rbBand.fMask = RBBIM_COLORS | RBBIM_TEXT | 
+		RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE |
+		RBBIM_SIZE;
+	rbBand.fStyle = RBBS_CHILDEDGE | RBBS_FIXEDBMP;
+	//rbBand.hbmBack = NULL;	// bitmap background, set to NULL to get gradient background
+	// Create the combo box control to be added.
+	hwndCB = CreateWindowW(TEXT("COMBOBOX"), NULL,
+		WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST,
+		410, 20, 120, 110, (HWND) NULL, (HMENU) NULL, NULL, NULL);
+	// Set values unique to the band with the combo box.
+	GetWindowRect(hwndCB, &rc);
+	rbBand.lpText = "Combo Box";
+	rbBand.hwndChild = hwndCB;
+	rbBand.cxMinChild = 0;
+	rbBand.cyMinChild = rc.bottom - rc.top;
+	rbBand.cx = 200;
+
+	// Add the band that has the combo box.
+	SendMessageW(hwndRB, RB_INSERTBAND, (WPARAM)-1, (LPARAM) &rbBand);
+
+
+	// Get the height of the toolbar.
+	dwBtnSize = SendMessageW(toolbar1, TB_GETBUTTONSIZE, 0, 0);
+
+	// Set values unique to the band with the toolbar.
+	rbBand.lpText = "Tool Bar";
+	rbBand.hwndChild = toolbar1;
+	rbBand.cxMinChild = 0;
+	rbBand.cyMinChild = HIWORD(dwBtnSize);
+	rbBand.cx = 250;
+
+	// Add the band that has the toolbar.
+	SendMessage(hwndRB, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbBand);
+	return (hwndRB);
+}
+
 // MessageBoxW(NULL, L"First Program", L"First", MB_OK);
+
