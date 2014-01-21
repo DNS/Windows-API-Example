@@ -28,12 +28,12 @@ HFONT defaultFont;
 HWND ghSb;
 HMENU hMenubar1, hMenu1, submenu1, hMenubar2, hMenu2, hPopUp1;
 HINSTANCE ghInstance;
-HWND ghwndEdit;
+HWND ghwndEdit, staticimage1;
 HWND hEdit , hLabel, button1, button2, checkbox1;
 HWND radiobtn1, radiobtn2, radiobtn3;
-HWND hProgressBar;
+HWND hProgressBar, treeview1;
 HFONT hfont1, hfont2, hfont3;
-HBITMAP hBitmap;
+HBITMAP hBitmap, kurtd3_bitmap;
 NONCLIENTMETRICS ncm;
 HWND hTrack;
 UINT hTrack_id;
@@ -45,11 +45,12 @@ HWND rebar1, toolbar1;
 HANDLE hImg;
 HMODULE hmod;
 
+
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK ControlProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PanelProc (HWND, UINT, WPARAM, LPARAM);
-BOOL CALLBACK EnumChildWindow(HWND hwnd, LPARAM lParam);
+BOOL CALLBACK EnumChildWindow(HWND, LPARAM);
 
 void CreateDialogBox (HWND);
 void RegisterDialogClass (HWND);
@@ -63,8 +64,8 @@ void CreateTrackBar (HWND);
 void UpdateTrackBar();
 void AddMenus (HWND);
 HWND BuildToolBar (HWND);
-HWND WINAPI CreateRebar (HWND);
-
+HWND WINAPI CreateRebar (HWND, HWND);
+HTREEITEM AddItemToTree(HWND, LPSTR, int);
 
 
 WCHAR s_buf[500];
@@ -113,11 +114,16 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	
 	//ShowWindow(hwnd, nCmdShow);
 	//UpdateWindow(hwnd);
-
-	while (GetMessageW(&msg, NULL, 0, 0) > 0) { /* If no error is received... */
+	ACCEL accel;
+	CreateAcceleratorTableW(&accel, 1);
+	HACCEL hAccel = LoadAcceleratorsW(hInstance, L"^R");
+	
+	while (GetMessageW(&msg, NULL, 0, 0) > 0) {		/* If no error is received... */
 		if (!IsDialogMessageW(hDlgCurrent, &msg)) {
-			TranslateMessage(&msg);		/* Translate key codes to chars if present */
-			DispatchMessageW(&msg);		/* Send it to WndProc */
+			if (!TranslateAcceleratorW(hwnd, hAccel, &msg)) {	/* Handle Keyboard shortcut */
+				TranslateMessage(&msg);		/* Translate key codes to chars if present */
+				DispatchMessageW(&msg);		/* Send it to WndProc */
+			}
 		}
 	}
 
@@ -260,6 +266,9 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			break;
 		case WM_ACTIVATE:
 			break;
+		case WM_KEYDOWN:
+
+			break;
 		case WM_SIZE:
 			break;
 		case WM_SIZING:
@@ -313,8 +322,8 @@ void AddMenus (HWND hwnd) {
 	hMenubar1 = CreateMenu();
 	hMenu1 = CreateMenu();
 
-	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_NEW, L"&New");
-	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_OPEN, L"&Open");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_NEW, L"&New\tCtrl+N");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_OPEN, L"&Open\bCtrl+C+O");
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_VIEW_STB, L"&Statusbar");
 	CheckMenuItem(hMenu1, IDM_VIEW_STB, MF_UNCHECKED);	// MF_CHECKED, MF_UNCHECKED
@@ -322,7 +331,26 @@ void AddMenus (HWND hwnd) {
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_DIALOG, L"&Dialog, ToolBar, && Rebar");
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_COLOR, L"&Color");
 
-	AppendMenuW(submenu1, MF_STRING, 5553, L"&Test 123");
+	AppendMenuW(submenu1, MF_STRING, 5553, L"&from AppendMenuW()\tCtrl+M");
+	
+	MENUITEMINFO mii;
+	mii.cbSize = sizeof(MENUITEMINFO);
+	mii.fMask = MIIM_STRING;
+	mii.fType = MFT_STRING | MFT_RIGHTJUSTIFY | MFT_RIGHTORDER;
+	//mii.fState = ;
+	//mii.wID = 5553;
+	mii.hSubMenu = submenu1;
+	//mii.hbmpChecked = ;
+	//mii.hbmpUnchecked = ;
+	//mii.dwItemData = ;
+	mii.dwTypeData = L"from InsertMenuItemW()\aCtrl+Shit+I";
+	//mii.cch = ;
+	//mii.hbmpItem = ;
+
+	InsertMenuItemW(submenu1, 0, FALSE, &mii);	// TRUE to set this menu to 0 position index (first)
+
+
+
 	AppendMenuW(hMenu1, MF_POPUP, (UINT_PTR) submenu1, L"&Submenu1");
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_CONTROL, L"&Control");
@@ -427,7 +455,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
 				270, 90, 100, 30, hwnd, (HMENU) 6003, NULL, NULL);
 
-			SendMessage(radiobtn2, BM_SETCHECK, BST_CHECKED, TRUE);		// set default value to radiobtn2
+			SendMessageW(radiobtn2, BM_SETCHECK, BST_CHECKED, TRUE);		// set default value to radiobtn2
 
 			// ComboBox: CBS_DROPDOWN or CBS_DROPDOWNLIST, msg CB_SETCURSEL, CB_GETCURSEL
 			hCombo = CreateWindowW(TEXT("COMBOBOX"), NULL,
@@ -440,7 +468,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM) L"Windows XP");
 			SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM) L"Windows 7");
 			
-			SendMessageW(hCombo, CB_SETCURSEL, 3, 0);	// set default index for ComboBox
+			SendMessageW(hCombo, CB_SETCURSEL, 4, 0);	// set default index for ComboBox
 			
 			// set font
 			SendMessageW(hCombo, WM_SETFONT, (WPARAM) hfont2, TRUE);
@@ -460,7 +488,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			// WC_TABCONTROL or "SysTabControl32"
 			hTab = CreateWindowW(L"SysTabControl32", NULL, WS_CHILD | WS_VISIBLE,
-				400, 70, 250, 250, hwnd, (HMENU) 2444, NULL, NULL);
+				400, 70, 150, 150, hwnd, (HMENU) 2444, NULL, NULL);
 
 			tabItem1.mask = TCIF_TEXT;
 			tabItem1.pszText = L"Tab 1";
@@ -473,10 +501,10 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 
 			// CW_LISTBOX or "LISTBOX"
-			listbox1 = CreateWindowExW(WS_EX_CLIENTEDGE, L"LISTBOX", NULL, WS_CHILD | WS_VISIBLE | LBS_NOTIFY | LBS_HASSTRINGS,
+			listbox1 = CreateWindowExW(WS_EX_CLIENTEDGE, L"LISTBOX", NULL, 
+				WS_CHILD | WS_VISIBLE | LBS_NOTIFY | LBS_HASSTRINGS,
 				260, 200, 120, 120, hwnd, (HMENU) 3555, NULL, NULL);
 
-			
 			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"UNIX");
 			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"Linux");
 			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"BSD");
@@ -484,10 +512,27 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"Mac OS X");
 			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"OS/2 WARP");
 
-
 			// set font
 			SendMessageW(hTab, WM_SETFONT, (WPARAM) hfont1, TRUE);
 			SendMessageW(listbox1, WM_SETFONT, (WPARAM) hfont1, TRUE);
+
+			// WC_TREEVIEW or "SysTreeView32"
+			treeview1 = CreateWindowExW(WS_EX_CLIENTEDGE, L"SysTreeView32", NULL, 
+				WS_CHILD | WS_VISIBLE | TVS_HASLINES | TVS_LINESATROOT,
+				400, 230, 150, 100, hwnd, (HMENU) 7265, NULL, NULL);
+
+			AddItemToTree(treeview1, L"treeview1 test", 0);
+			AddItemToTree(treeview1, L"child", 1);
+
+			// STATIC Image
+			staticimage1 = CreateWindowW(L"STATIC", L"This is Label",
+				WS_CHILD | WS_VISIBLE | SS_BITMAP,
+				560, 50, 100, 100, hwnd, (HMENU) 9524, NULL, NULL);
+			// LoadImage(): 0 -> actual resource size,  LR_DEFAULTSIZE -> fit to parent
+			kurtd3_bitmap = LoadImageW(NULL, L"kurtd3.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+			SendMessageW(staticimage1, STM_SETIMAGE, IMAGE_BITMAP, kurtd3_bitmap);
+
+
 
 			break;
 
@@ -643,17 +688,12 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 			hLabel = CreateWindowW(L"STATIC", L"This is Label", 
 				WS_CHILD | WS_VISIBLE | SS_LEFT, 
 				20, 120, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
-
+			
 			toolbar1 = BuildToolBar(hwnd);
-
-
-			// REBARCLASSNAME or "ReBarWindow32"
-		/*	rebar1 = CreateWindowExW(WS_EX_TOOLWINDOW, L"ReBarWindow32", L"This is Label", 
-				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | RBS_VARHEIGHT | CCS_NODIVIDER, 
-				20, 20, 150, 13, hwnd, (HMENU) 1460, NULL, NULL);*/
+			
 
 			
-			CreateRebar(hwnd);
+			
 			
 
 
@@ -664,6 +704,8 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 			AppendMenuW(hMenu2, MF_STRING, 1075, L"&Save As");
 			AppendMenuW(hMenubar2, MF_POPUP, (UINT_PTR) hMenu2, L"&File");
 			SetMenu(hwnd, hMenubar2);
+
+			rebar1 = CreateRebar(hwnd, toolbar1);
 
 			break;
 
@@ -780,11 +822,8 @@ void LoadFile_internal (LPCWSTR file) {
 	DWORD dwSize;
 	DWORD dw;
 	LPBYTE lpsBuffer;
-	WCHAR ws_sBuf[5000] = {0};		/* BUG: sBuffer overflow ! */
-
-	/* string consisting of several Asian characters */
-	wchar_t wcsString[] = L"\u9580\u961c\u9640\u963f\u963b\u9644";
-
+	WCHAR ws_sBuf[5000] = { 0 };		/* BUG: sBuffer overflow ! */
+	
 	hFile = CreateFileW((LPCWSTR) file, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	dwSize = GetFileSize(hFile, NULL);
 	lpsBuffer = (LPBYTE) HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, dwSize + 1);
@@ -861,37 +900,43 @@ HWND BuildToolBar (HWND hwnd) {
     HWND hToolBar;
     TBBUTTON tbb[4];
     TBADDBITMAP tbab;
+	WCHAR wcsString[] = L"\u9580\u961c\u9640\u963f\u963b\u9644";
 
 	// TOOLBARCLASSNAME or "ToolBarWindow32"
-    hToolBar = CreateWindowW(TOOLBARCLASSNAME, NULL, 
+    hToolBar = CreateWindowW(L"ToolBarWindow32", NULL, 
 		WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TBSTYLE_TOOLTIPS |
 		TBSTYLE_FLAT | CCS_TOP | BTNS_AUTOSIZE | TBSTYLE_TRANSPARENT, 
-		0, 0, 0, 0, hwnd, (HMENU) 7711, GetModuleHandle(NULL), NULL);
+		20, 0, 0, 0, hwnd, (HMENU) 7711, GetModuleHandle(NULL), NULL);
     SendMessageW(hToolBar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
     SendMessageW(hToolBar, TB_SETEXTENDEDSTYLE, 0, (LPARAM) TBSTYLE_EX_HIDECLIPPEDBUTTONS);
 
     tbab.hInst = NULL;	//HINST_COMMCTRL;
 	tbab.nID = (UINT_PTR) hBitmap;	//IDB_STD_SMALL_COLOR;
 
-    SendMessageW(hToolBar, TB_ADDBITMAP, 300, (LPARAM) &tbab);
+    SendMessageW(hToolBar, TB_ADDBITMAP, 0, (LPARAM) &tbab);
 
     ZeroMemory(tbb, sizeof(tbb));
-    tbb[0].iBitmap = 0;	//STD_FILENEW;
+	
+    tbb[0].iBitmap = 0;		// bitmap index
+	tbb[0].iString = L"New";
     tbb[0].fsState = TBSTATE_ENABLED;
     tbb[0].fsStyle = TBSTYLE_BUTTON;
     tbb[0].idCommand = IDM_FILE_NEW;
 
-    tbb[1].iBitmap = 0;	//STD_FILEOPEN;
+	tbb[1].iBitmap = 0;		// bitmap index
+	tbb[1].iString = L"Open";
     tbb[1].fsState = TBSTATE_ENABLED;
     tbb[1].fsStyle = TBSTYLE_BUTTON;
     tbb[1].idCommand = IDM_FILE_OPEN;
 
-	tbb[2].iBitmap = 0;	//STD_FILESAVE;
+	tbb[2].iBitmap = 0;		// bitmap index
+	tbb[2].iString = L"Separator";
     tbb[2].fsState = TBSTATE_ENABLED;
-    tbb[2].fsStyle = TBSTYLE_SEP;		// TBSTYLE_SEP
+    tbb[2].fsStyle = TBSTYLE_SEP;		// Separator
     tbb[2].idCommand = IDM_FILE_QUIT;
 
-    tbb[3].iBitmap = 0;	//STD_FILESAVE;
+	tbb[3].iBitmap = 0;		// bitmap index
+	tbb[3].iString = wcsString;
     tbb[3].fsState = TBSTATE_ENABLED;
     tbb[3].fsStyle = TBSTYLE_BUTTON;
     tbb[3].idCommand = IDM_FILE_QUIT;
@@ -899,75 +944,116 @@ HWND BuildToolBar (HWND hwnd) {
     SendMessageW(hToolBar, TB_SETBUTTONSIZE, (WPARAM)0, (LPARAM)MAKELONG(24, 22));
     SendMessageW(hToolBar, TB_ADDBUTTONS, sizeof(tbb) / sizeof(TBBUTTON), (LPARAM) &tbb);
     SendMessageW(hToolBar, TB_AUTOSIZE, 0, 0);
-	
+
+	//SendMessageW(hToolBar, TB_SETMAXTEXTROWS, 0, 0);	// ShowToolTip
+
 	return hToolBar;
 }
 
 
-HWND WINAPI CreateRebar (HWND hwndOwner)
+HWND WINAPI CreateRebar (HWND hwnd_parent, HWND hwnd_target)
 {
 	REBARINFO     rbi;
 	REBARBANDINFO rbBand;
 	RECT          rc;
-	HWND   hwndCB, hwndRB;
+	HWND   hwndRB;
 	DWORD  dwBtnSize;
 
-	hwndRB = CreateWindowExW(WS_EX_TOOLWINDOW,
-		REBARCLASSNAME,
-		NULL,
-		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS |
-		WS_CLIPCHILDREN | RBS_VARHEIGHT |
-		CCS_NODIVIDER,
-		0, 0, 0, 0,
-		hwndOwner,
-		NULL,
-		GetModuleHandleW(NULL),
-		NULL);
+	// REBARCLASSNAME or "ReBarWindow32"
+	hwndRB = CreateWindowExW(WS_EX_TOOLWINDOW, L"ReBarWindow32", NULL,
+		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | RBS_VARHEIGHT | CCS_NODIVIDER | RBS_AUTOSIZE | RBS_REGISTERDROP | RBS_VERTICALGRIPPER,
+		0, 0, 0, 0, hwnd_parent, NULL, GetModuleHandleW(NULL), NULL);
+
 	if (!hwndRB)
 		return NULL;
 	// Initialize and send the REBARINFO structure.
 	rbi.cbSize = sizeof(REBARINFO);  // Required when using this
 	// structure.
 	rbi.fMask = 0;
-	rbi.himl = (HIMAGELIST)NULL;
-	if (!SendMessageW(hwndRB, RB_SETBARINFO, 0, (LPARAM)&rbi))
+	rbi.himl = (HIMAGELIST) NULL;
+	if (!SendMessageW(hwndRB, RB_SETBARINFO, 0, (LPARAM) &rbi))
 		return NULL;
 	// Initialize structure members that both bands will share.
 	rbBand.cbSize = sizeof(REBARBANDINFO);  // Required
-	rbBand.fMask = RBBIM_COLORS | RBBIM_TEXT | 
+	rbBand.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE;
+		/*RBBIM_COLORS | RBBIM_TEXT | 
 		RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE |
-		RBBIM_SIZE;
+		RBBIM_SIZE;*/
 	rbBand.fStyle = RBBS_CHILDEDGE | RBBS_FIXEDBMP;
 	//rbBand.hbmBack = NULL;	// bitmap background, set to NULL to get gradient background
 	// Create the combo box control to be added.
-	hwndCB = CreateWindowW(TEXT("COMBOBOX"), NULL,
-		WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST,
-		410, 20, 120, 110, (HWND) NULL, (HMENU) NULL, NULL, NULL);
+
 	// Set values unique to the band with the combo box.
-	GetWindowRect(hwndCB, &rc);
-	rbBand.lpText = "Combo Box";
-	rbBand.hwndChild = hwndCB;
-	rbBand.cxMinChild = 0;
+	GetWindowRect(hwnd_target, &rc);
+	rbBand.lpText = "target";
+	rbBand.hwndChild = hwnd_target;
+	rbBand.cxMinChild = rc.right - rc.left;
 	rbBand.cyMinChild = rc.bottom - rc.top;
 	rbBand.cx = 200;
 
 	// Add the band that has the combo box.
 	SendMessageW(hwndRB, RB_INSERTBAND, (WPARAM)-1, (LPARAM) &rbBand);
 
-
-	// Get the height of the toolbar.
-	dwBtnSize = SendMessageW(toolbar1, TB_GETBUTTONSIZE, 0, 0);
-
-	// Set values unique to the band with the toolbar.
-	rbBand.lpText = "Tool Bar";
-	rbBand.hwndChild = toolbar1;
-	rbBand.cxMinChild = 0;
-	rbBand.cyMinChild = HIWORD(dwBtnSize);
-	rbBand.cx = 250;
-
-	// Add the band that has the toolbar.
-	SendMessage(hwndRB, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbBand);
 	return (hwndRB);
+}
+
+
+HTREEITEM AddItemToTree (HWND hwndTV, LPCWSTR lpszItem, int nLevel)
+{
+	TVITEM tvi;
+	TVINSERTSTRUCT tvins;
+	static HTREEITEM hPrev = (HTREEITEM) TVI_FIRST;
+	static HTREEITEM hPrevRootItem = NULL;
+	static HTREEITEM hPrevLev2Item = NULL;
+	HTREEITEM hti;
+
+	tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_PARAM;
+
+	// Set the text of the item. 
+	tvi.pszText = lpszItem;
+	tvi.cchTextMax = sizeof(tvi.pszText) / sizeof(tvi.pszText[0]);
+
+	// Assume the item is not a parent item, so give it a 
+	// document image. 
+	tvi.iImage = NULL;
+	tvi.iSelectedImage = NULL;
+
+	// Save the heading level in the item's application-defined 
+	// data area. 
+	tvi.lParam = (LPARAM)nLevel;
+	tvins.item = tvi;
+	tvins.hInsertAfter = hPrev;
+
+	// Set the parent item based on the specified level. 
+	if (nLevel == 1)
+		tvins.hParent = TVI_ROOT;
+	else if (nLevel == 2)
+		tvins.hParent = hPrevRootItem;
+	else
+		tvins.hParent = hPrevLev2Item;
+
+	// Add the item to the tree-view control. 
+	hPrev = SendMessageW(hwndTV, TVM_INSERTITEM, 0, &tvins);
+
+	// Save the handle to the item. 
+	if (nLevel == 1)
+		hPrevRootItem = hPrev;
+	else if (nLevel == 2)
+		hPrevLev2Item = hPrev;
+
+	// The new item is a child item. Give the parent item a 
+	// closed folder bitmap to indicate it now has child items. 
+	if (nLevel > 1)
+	{
+		hti = TreeView_GetParent(hwndTV, hPrev);
+		tvi.mask = TVIF_IMAGE | TVIF_SELECTEDIMAGE;
+		tvi.hItem = hti;
+		tvi.iImage = NULL;
+		tvi.iSelectedImage = NULL;
+		SendMessageW(hwndTV, TVM_SETITEM, 0, &tvi);
+	}
+
+	return hPrev;
 }
 
 // MessageBoxW(NULL, L"First Program", L"First", MB_OK);
