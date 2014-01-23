@@ -64,7 +64,7 @@ void CreateTrackBar (HWND);
 void UpdateTrackBar();
 void AddMenus (HWND);
 HWND BuildToolBar (HWND);
-HWND WINAPI CreateRebar (HWND, HWND);
+HWND CreateRebar (HWND, HWND);
 HTREEITEM AddItemToTree(HWND, LPSTR, int);
 
 
@@ -79,6 +79,8 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	HWND hwnd;
 	WNDCLASSEX wc;
 	INITCOMMONCONTROLSEX iccex;
+	ACCEL accel[2];
+	HACCEL hAccel;
 	
 	//memset(&wc, 0, sizeof(wc));
 	wc.cbSize = sizeof(WNDCLASSEXW);
@@ -114,9 +116,16 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	
 	//ShowWindow(hwnd, nCmdShow);
 	//UpdateWindow(hwnd);
-	ACCEL accel;
-	CreateAcceleratorTableW(&accel, 1);
-	HACCEL hAccel = LoadAcceleratorsW(hInstance, L"^R");
+
+	// Create Keyboard Accelerator/Shorcut
+	accel[0].fVirt = FCONTROL | FVIRTKEY;
+	accel[0].key = 'A';			// must be uppercase
+	accel[0].cmd = 9101;		// msg code to send to WM_COMMAND
+	accel[1].fVirt = FCONTROL | FVIRTKEY;
+	accel[1].key = 'C';			// must be uppercase
+	accel[1].cmd = 9102;		// msg code to send to WM_COMMAND
+	hAccel = CreateAcceleratorTableW(&accel, 2);
+	hAccel = CreateAcceleratorTableW(&accel, 2);
 	
 	while (GetMessageW(&msg, NULL, 0, 0) > 0) {		/* If no error is received... */
 		if (!IsDialogMessageW(hDlgCurrent, &msg)) {
@@ -259,7 +268,13 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					}
 					break;
 				case 300:
-					MessageBoxW(NULL, L"First Program", L"First", MB_OK);
+					MessageBoxW(NULL, L"First Program", L"DEBUG", MB_OK);
+					break;
+				case 9101:
+					MessageBoxW(NULL, L"Ctrl+A pressed", L"DEBUG", MB_OK);
+					break;
+				case 9102:
+					MessageBoxW(NULL, L"Ctrl+C pressed", L"DEBUG", MB_OK);
 					break;
 			}	// switch(LOWORD(wParam))
 
@@ -318,12 +333,14 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 
 void AddMenus (HWND hwnd) {
+	MENUITEMINFO mii;
+
 	submenu1 = CreateMenu();
 	hMenubar1 = CreateMenu();
 	hMenu1 = CreateMenu();
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_NEW, L"&New\tCtrl+N");
-	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_OPEN, L"&Open\bCtrl+C+O");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_OPEN, L"&Open\tCtrl+C+O");
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_VIEW_STB, L"&Statusbar");
 	CheckMenuItem(hMenu1, IDM_VIEW_STB, MF_UNCHECKED);	// MF_CHECKED, MF_UNCHECKED
@@ -333,7 +350,6 @@ void AddMenus (HWND hwnd) {
 
 	AppendMenuW(submenu1, MF_STRING, 5553, L"&from AppendMenuW()\tCtrl+M");
 	
-	MENUITEMINFO mii;
 	mii.cbSize = sizeof(MENUITEMINFO);
 	mii.fMask = MIIM_STRING;
 	mii.fType = MFT_STRING | MFT_RIGHTJUSTIFY | MFT_RIGHTORDER;
@@ -343,7 +359,7 @@ void AddMenus (HWND hwnd) {
 	//mii.hbmpChecked = ;
 	//mii.hbmpUnchecked = ;
 	//mii.dwItemData = ;
-	mii.dwTypeData = L"from InsertMenuItemW()\aCtrl+Shit+I";
+	mii.dwTypeData = L"from InsertMenuItemW()\tCtrl+Shit+I";
 	//mii.cch = ;
 	//mii.hbmpItem = ;
 
@@ -518,14 +534,14 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			// WC_TREEVIEW or "SysTreeView32"
 			treeview1 = CreateWindowExW(WS_EX_CLIENTEDGE, L"SysTreeView32", NULL, 
-				WS_CHILD | WS_VISIBLE | TVS_HASLINES | TVS_LINESATROOT,
+				WS_CHILD | WS_VISIBLE | TVS_HASLINES | TVS_LINESATROOT, 
 				400, 230, 150, 100, hwnd, (HMENU) 7265, NULL, NULL);
 
 			AddItemToTree(treeview1, L"treeview1 test", 0);
 			AddItemToTree(treeview1, L"child", 1);
 
 			// STATIC Image
-			staticimage1 = CreateWindowW(L"STATIC", L"This is Label",
+			staticimage1 = CreateWindowW(L"STATIC", L"This is Label", 
 				WS_CHILD | WS_VISIBLE | SS_BITMAP,
 				560, 50, 100, 100, hwnd, (HMENU) 9524, NULL, NULL);
 			// LoadImage(): 0 -> actual resource size,  LR_DEFAULTSIZE -> fit to parent
@@ -658,7 +674,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case WM_CLOSE:
 			hwnd_parent = GetWindow(hwnd, GW_OWNER);
 			ret = EnableWindow(hwnd_parent, TRUE);
-			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"First", MB_OK);
+			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"DEBUG", MB_OK);
 			DestroyWindow(hwnd);
 			
 			ShowWindow(hwnd_parent, SW_RESTORE);
@@ -691,12 +707,6 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 			
 			toolbar1 = BuildToolBar(hwnd);
 			
-
-			
-			
-			
-
-
 			// add menu to Dialog
 			hMenubar2 = CreateMenu();
 			hMenu2 = CreateMenu();
@@ -726,7 +736,7 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 
 			break;
 		case WM_SETFONT:
-			//MessageBoxW(NULL, L"Font set", L"First", MB_OK);
+			//MessageBoxW(NULL, L"Font set", L"DEBUG", MB_OK);
 			break;
 		case WM_HSCROLL:
 			ctrlID = GetDlgCtrlID((HWND) lParam);
@@ -782,14 +792,12 @@ LRESULT CALLBACK PanelProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 	switch (msg) {
 		case WM_PAINT:
-			{
 			GetClientRect(hwnd, &rect);
 			hdc = BeginPaint(hwnd, &ps);
 			SetBkColor(hdc, gColor);
 			ExtTextOut(hdc, 0, 0, ETO_OPAQUE, &rect, TEXT(""), 0, NULL);
 			EndPaint(hwnd, &ps);
 			break;
-			}
 	}
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 }
@@ -822,7 +830,7 @@ void LoadFile_internal (LPCWSTR file) {
 	DWORD dwSize;
 	DWORD dw;
 	LPBYTE lpsBuffer;
-	WCHAR ws_sBuf[5000] = { 0 };		/* BUG: sBuffer overflow ! */
+	WCHAR text_buf[5000] = {0};		/* BUG: Buffer overflow ! */
 	
 	hFile = CreateFileW((LPCWSTR) file, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	dwSize = GetFileSize(hFile, NULL);
@@ -830,8 +838,8 @@ void LoadFile_internal (LPCWSTR file) {
 	ReadFile(hFile, lpsBuffer, dwSize, &dw, NULL);
 	CloseHandle(hFile);
 
-	MultiByteToWideChar(CP_UTF8, 0, (LPCCH) lpsBuffer, dwSize, ws_sBuf, dwSize);
-	SetWindowTextW(ghwndEdit, (LPWSTR) ws_sBuf);		// BUG: buffer overflow, replace lpsBuffer with L"abcd text"
+	MultiByteToWideChar(CP_UTF8, 0, (LPCCH)lpsBuffer, dwSize, text_buf, dwSize);
+	SetWindowTextW(ghwndEdit, (LPWSTR) text_buf);		// BUG: buffer overflow, replace lpsBuffer with L"abcd text"
 
 	HeapFree(GetProcessHeap(), 0, lpsBuffer);
 }
@@ -847,8 +855,7 @@ void CreateMyTooltip (HWND hwnd) {
 		WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,		
 		0, 0, 0, 0, hwnd, NULL, NULL, NULL );
 
-	SetWindowPos(hwndTT, HWND_TOPMOST, 0, 0, 0, 0,
-	SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+	SetWindowPos(hwndTT, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 	 
 	GetClientRect (hwnd, &rect);
 
@@ -951,13 +958,12 @@ HWND BuildToolBar (HWND hwnd) {
 }
 
 
-HWND WINAPI CreateRebar (HWND hwnd_parent, HWND hwnd_target)
-{
-	REBARINFO     rbi;
+HWND CreateRebar (HWND hwnd_parent, HWND hwnd_target) {
+	REBARINFO rbi;
 	REBARBANDINFO rbBand;
-	RECT          rc;
-	HWND   hwndRB;
-	DWORD  dwBtnSize;
+	RECT rc;
+	HWND hwndRB;
+	DWORD dwBtnSize;
 
 	// REBARCLASSNAME or "ReBarWindow32"
 	hwndRB = CreateWindowExW(WS_EX_TOOLWINDOW, L"ReBarWindow32", NULL,
@@ -998,8 +1004,7 @@ HWND WINAPI CreateRebar (HWND hwnd_parent, HWND hwnd_target)
 }
 
 
-HTREEITEM AddItemToTree (HWND hwndTV, LPCWSTR lpszItem, int nLevel)
-{
+HTREEITEM AddItemToTree (HWND hwndTV, LPCWSTR lpszItem, int nLevel) {
 	TVITEM tvi;
 	TVINSERTSTRUCT tvins;
 	static HTREEITEM hPrev = (HTREEITEM) TVI_FIRST;
@@ -1043,8 +1048,7 @@ HTREEITEM AddItemToTree (HWND hwndTV, LPCWSTR lpszItem, int nLevel)
 
 	// The new item is a child item. Give the parent item a 
 	// closed folder bitmap to indicate it now has child items. 
-	if (nLevel > 1)
-	{
+	if (nLevel > 1) {
 		hti = TreeView_GetParent(hwndTV, hPrev);
 		tvi.mask = TVIF_IMAGE | TVIF_SELECTEDIMAGE;
 		tvi.hItem = hti;
@@ -1056,5 +1060,5 @@ HTREEITEM AddItemToTree (HWND hwndTV, LPCWSTR lpszItem, int nLevel)
 	return hPrev;
 }
 
-// MessageBoxW(NULL, L"First Program", L"First", MB_OK);
+// MessageBoxW(NULL, L"First Program", L"DEBUG", MB_OK);
 
