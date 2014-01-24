@@ -66,7 +66,7 @@ void AddMenus (HWND);
 HWND BuildToolBar (HWND);
 HWND CreateRebar (HWND, HWND);
 HTREEITEM AddItemToTree(HWND, LPSTR, int);
-
+void CenterWindow(HWND);
 
 WCHAR s_buf[500];
 
@@ -99,7 +99,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 
 	iccex.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES;
 	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	//InitCommonControls();		// obsolete
+	//InitCommonControls();			// obsolete
 	InitCommonControlsEx(&iccex);
 
 	if (!RegisterClassExW(&wc)) {
@@ -107,11 +107,11 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 		return -1;
 	}
 	
-
+	// create main window
 	hwnd = CreateWindowExW(WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES | WS_EX_CONTROLPARENT, 
 		wc.lpszClassName, L"Title", 
-		WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_TABSTOP, CW_USEDEFAULT, 
-		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
+		WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_TABSTOP, 
+		0, 0, 800, 600, (HWND) NULL, (HMENU) NULL, hInstance, NULL);
 	
 	
 	//ShowWindow(hwnd, nCmdShow);
@@ -155,6 +155,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 	switch (msg) {
 		case WM_CREATE:
+			CenterWindow(hwnd);
 			hBitmap = (HBITMAP) LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 			AddMenus(hwnd);
 			
@@ -679,6 +680,8 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			ShowWindow(hwnd_parent, SW_RESTORE);
 			ShowWindow(hwnd_parent, SW_SHOW);
 			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
+
+			DeleteObject(kurtd3_bitmap);
 			break; 
 		case WM_DESTROY:
 			DeleteObject(hImg);
@@ -749,6 +752,7 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 		case WM_NOTIFY:
 			break;
 		case WM_CLOSE:
+			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
 			DestroyWindow(hwnd);
 			break; 
 		case WM_DESTROY:
@@ -794,7 +798,7 @@ LRESULT CALLBACK PanelProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			GetClientRect(hwnd, &rect);
 			hdc = BeginPaint(hwnd, &ps);
 			SetBkColor(hdc, gColor);
-			ExtTextOut(hdc, 0, 0, ETO_OPAQUE, &rect, TEXT(""), 0, NULL);
+			ExtTextOutW(hdc, 0, 0, ETO_OPAQUE, &rect, L"", 0, NULL);
 			EndPaint(hwnd, &ps);
 			break;
 	}
@@ -1057,6 +1061,19 @@ HTREEITEM AddItemToTree (HWND hwndTV, LPCWSTR lpszItem, int nLevel) {
 	}
 
 	return hPrev;
+}
+
+void CenterWindow(HWND hwnd) {
+	RECT rc;
+	GetWindowRect(hwnd, &rc);
+	/*SetWindowPos(hwnd, 0,
+		(1366 - ),
+		500,
+		0, 0, SWP_NOZORDER | SWP_NOSIZE);*/
+	SetWindowPos(hwnd, 0,
+		(GetSystemMetrics(SM_CXSCREEN) - rc.right) / 2,
+		(GetSystemMetrics(SM_CYSCREEN) - rc.bottom) / 2,
+		0, 0, SWP_NOZORDER | SWP_NOSIZE);
 }
 
 // MessageBoxW(NULL, L"First Program", L"DEBUG", MB_OK);
