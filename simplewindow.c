@@ -675,16 +675,19 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			hwnd_parent = GetWindow(hwnd, GW_OWNER);
 			ret = EnableWindow(hwnd_parent, TRUE);
 			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"DEBUG", MB_OK);
-			DestroyWindow(hwnd);
+			
 			
 			ShowWindow(hwnd_parent, SW_RESTORE);
 			ShowWindow(hwnd_parent, SW_SHOW);
+
 			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
+			DestroyWindow(hwnd);
 
 			DeleteObject(kurtd3_bitmap);
+			DeleteObject(hImg);
 			break; 
 		case WM_DESTROY:
-			DeleteObject(hImg);
+			
 			break;
 	}
 	

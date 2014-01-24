@@ -23,6 +23,9 @@
       <FileType>Text</FileType>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{963C798A-D1FC-4384-886A-FA77779CC9DC}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
