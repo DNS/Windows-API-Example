@@ -50,7 +50,7 @@ LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK ControlProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PanelProc (HWND, UINT, WPARAM, LPARAM);
-BOOL CALLBACK EnumChildWindow(HWND, LPARAM);
+BOOL CALLBACK DestroyChildWindow(HWND, LPARAM);
 
 void CreateDialogBox (HWND);
 void RegisterDialogClass (HWND);
@@ -124,8 +124,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	accel[1].fVirt = FCONTROL | FVIRTKEY;
 	accel[1].key = 'C';			// must be uppercase
 	accel[1].cmd = 9102;		// msg code to send to WM_COMMAND
-	hAccel = CreateAcceleratorTableW(&accel, 2);
-	hAccel = CreateAcceleratorTableW(&accel, 2);
+	hAccel = CreateAcceleratorTableW(accel, 2);
 	
 	while (GetMessageW(&msg, NULL, 0, 0) > 0) {		/* If no error is received... */
 		if (!IsDialogMessageW(hDlgCurrent, &msg)) {
@@ -140,7 +139,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 }
 
 
-BOOL CALLBACK EnumChildWindow(HWND hwnd, LPARAM lParam) {
+BOOL CALLBACK DestroyChildWindow(HWND hwnd, LPARAM lParam) {
 	DestroyWindow(hwnd);
 	SendMessageW(hwnd, WM_DESTROY, 0, 0);
 	return TRUE;
@@ -313,7 +312,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		case WM_LBUTTONDOWN:
 			break;
 		case WM_CLOSE:
-			//EnumWindows(EnumFunc, lParam);
+			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
 			DestroyWindow(hwnd);
 			break;
 		case WM_DESTROY:
@@ -679,7 +678,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			
 			ShowWindow(hwnd_parent, SW_RESTORE);
 			ShowWindow(hwnd_parent, SW_SHOW);
-
+			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
 			break; 
 		case WM_DESTROY:
 			DeleteObject(hImg);
