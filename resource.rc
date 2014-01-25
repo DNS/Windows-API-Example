@@ -2,4 +2,5 @@
 // Icon with lowest ID value placed first to ensure application icon
 
 #define EXEICON 101
+
 EXEICON ICON "razor.ico"

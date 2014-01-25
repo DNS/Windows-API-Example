@@ -903,8 +903,8 @@ void CreateTrackBar (HWND hwnd) {
 
 void UpdateTrackBar (HWND hTrackBar) {
 	LRESULT pos = SendMessageW(hTrackBar, TBM_GETPOS, 0, 0);
-	wsprintfW(s_buf, L"%ld", pos);
-
+	wsprintfW(s_buf, L"%ld", pos);			// Win32 API
+	//swprintf(s_buf, 100, L"%ld", pos);	// ANSI C
 	SetWindowTextW(hDebugLabel, s_buf);
 }
 
