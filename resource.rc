@@ -1,6 +1,7 @@
 
-// Icon with lowest ID value placed first to ensure application icon
+// ICON with lowest ID value placed first to ensure application icon
 
-#define EXEICON 101
+1 ICON "razor.ico"
+2 BITMAP "test123.bmp"
 
-EXEICON ICON "razor.ico"
+
