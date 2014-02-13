@@ -263,7 +263,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					
 					hwnd_control = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT, L"CustomWindowClass", 
 						L"Custom Control Example", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
-						100, 100, 800, 550, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
+						100, 100, 600, 400, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
 
 					EnableWindow(hwnd, FALSE);	// make hwnd_tmp modal window
 
@@ -705,62 +705,60 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 LRESULT CALLBACK CustomProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	HWND hwnd_parent;
 	BOOL ret;
-	HDC hdc, hdc_tmp, hdc_tmp2;
+	HDC hdc, hdc_tmp;
 	PAINTSTRUCT ps, ps2;
 	RECT r;
 	int i;
 	HPEN pen_solid1, pen_solid2, holdPen, holdPen2;
+	RECT rc;
+	int ssaa_scale;
+	HBITMAP bmp;
 
 	switch (msg) {
 		case WM_CREATE:
-
+			CreateWindowW(L"STATIC", L"Super Sample Anti Aliasing 8x", 
+				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
+				50, 250, 250, 17, hwnd, (HMENU) 4714, NULL, NULL);
+			CreateWindowW(L"STATIC", L"Original (No AA)", 
+				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
+				380, 250, 250, 17, hwnd, (HMENU) 4714, NULL, NULL);
 			break;
 		case WM_PAINT:
 			GetClientRect(hwnd, &r);
 
 			hdc = BeginPaint(hwnd, &ps);
+			
 
 			// draw line & super sample anti aliasing
-			HDC hdc_nul = GetDC(NULL);
-			hdc_tmp = CreateCompatibleDC(hdc_nul);
+			ssaa_scale = 8;
+			hdc_tmp = CreateCompatibleDC(NULL);
 
-			pen_solid1 = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+			pen_solid1 = CreatePen(PS_SOLID, ssaa_scale, RGB(0, 0, 0));
 			holdPen = SelectObject(hdc_tmp, pen_solid1);
 
-			HBITMAP bmp = CreateCompatibleBitmap(hdc, 400, 400);
+			bmp = CreateCompatibleBitmap(hdc, 200*ssaa_scale, 200*ssaa_scale);
 			SelectObject(hdc_tmp, bmp);
 
-			RECT rc = {0, 0, 400, 400};
+			rc.left = 0;
+			rc.top = 0;
+			rc.right = 200*ssaa_scale;
+			rc.bottom = 200*ssaa_scale;
+
 			FillRect(hdc_tmp, &rc, GetStockObject(WHITE_PEN));
 
 			MoveToEx(hdc_tmp, 0, 0, NULL);
-			LineTo(hdc_tmp, 50, 200);
+			LineTo(hdc_tmp, 50*ssaa_scale, 200*ssaa_scale);
 
-			//SetStretchBltMode(hdc_tmp, HALFTONE);
-			//BitBlt(hdc, 0, 0, 400, 400, hdc_tmp, 0, 0, SRCCOPY);
-			
-			//StretchBlt(hdc, 250, 0, 200, 200, hdc_tmp, 0, 0, 400, 400, SRCCOPY);
-			//HBITMAP hTempBitmap = CreateCompatibleBitmap(hdc, 200, 200);
-			//SelectObject(hdc, hTempBitmap);
-			//SetStretchBltMode(hdc, HALFTONE);
 
-			hdc_tmp2 = CreateCompatibleDC(hdc_nul);
-			HBITMAP bmp2 = CreateCompatibleBitmap(hdc_tmp2, 800, 800);
-			SelectObject(hdc_tmp2, bmp2);
-			FillRect(hdc_tmp2, &rc, GetStockObject(WHITE_PEN));
 			SetStretchBltMode(hdc, HALFTONE);
-			StretchBlt(hdc_tmp2, 0, 0, 800, 800, hdc_tmp, 0, 0, 200, 200, SRCCOPY);
-
-			//SelectObject(hdc_tmp2, bmp2);
-			//SetStretchBltMode(hdc, HALFTONE);
-			
-			StretchBlt(hdc, 0, 0, 200, 200, hdc_tmp2, 0, 0, 800, 800, SRCCOPY);
+			StretchBlt(hdc, 50, 0, 200, 200, hdc_tmp, 0, 0, 200*ssaa_scale, 200*ssaa_scale, SRCCOPY);
 
 
-			/*pen_solid2 = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+			// draw line without AA
+			pen_solid2 = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
 			holdPen2 = SelectObject(hdc_tmp, pen_solid2);
-			MoveToEx(hdc, 400, 400, NULL);
-			LineTo(hdc, 500, 600);*/
+			MoveToEx(hdc, 400, 0, NULL);
+			LineTo(hdc, 50+400, 200+0);
 			
 			// draw random pixel
 			for (i=0; i<1000; i++) {
