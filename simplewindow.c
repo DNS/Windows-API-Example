@@ -22,7 +22,7 @@
 #define IDM_FILE_DIALOG 5
 #define IDM_FILE_COLOR 6
 #define IDM_FILE_CONTROL 7
-
+#define IDM_FILE_CUSTOM 8
 
 HFONT defaultFont;
 HWND ghSb;
@@ -49,11 +49,11 @@ HMODULE hmod;
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK ControlProc (HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK CustomProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PanelProc (HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK DestroyChildWindow(HWND, LPARAM);
 
 void CreateDialogBox (HWND);
-void RegisterDialogClass (HWND);
 void RegisterPanel ();
 COLORREF ShowColorDialog (HWND);
 void CreateMenubar (HWND);
@@ -65,7 +65,7 @@ void UpdateTrackBar();
 void AddMenus (HWND);
 HWND BuildToolBar (HWND);
 HWND CreateRebar (HWND, HWND);
-HTREEITEM AddItemToTree(HWND, LPSTR, int);
+HTREEITEM AddItemToTree(HWND, LPCWSTR, int);
 void CenterWindow(HWND);
 
 WCHAR s_buf[500];
@@ -151,7 +151,8 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	UINT state;
 	static HWND hwndPanel;
 	RECT rectParent;
-	WNDCLASSEX wc = {0};
+	WNDCLASSEX wc1 = {0}, wc2 = {0}, wc3 = {0};
+
 
 	switch (msg) {
 		case WM_CREATE:
@@ -215,15 +216,16 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			switch(LOWORD(wParam)) {
 				case IDM_FILE_NEW:
 					Beep(50, 100);
+					MessageBoxA(NULL, "Clicked !", "IDM_FILE_NEW", MB_OK);
 					break;
 				case IDM_FILE_DIALOG:
-					memset(&wc, 0, sizeof(wc));
-					wc.cbSize = sizeof(WNDCLASSEX);
-					wc.lpfnWndProc = (WNDPROC) DialogProc;
-					wc.hInstance = GetModuleHandleW(NULL);
-					wc.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
-					wc.lpszClassName = L"DialogClass";
-					RegisterClassExW(&wc);
+					memset(&wc3, 0, sizeof(wc3));
+					wc3.cbSize = sizeof(WNDCLASSEX);
+					wc3.lpfnWndProc = (WNDPROC) DialogProc;
+					wc3.hInstance = GetModuleHandleW(NULL);
+					wc3.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+					wc3.lpszClassName = L"DialogClass";
+					RegisterClassExW(&wc3);
 					hwnd_dialog = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_TOPMOST, 
 						L"DialogClass", L"Dialog, ToolBar, & Rebar", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 400, 400, 
@@ -234,20 +236,38 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					InvalidateRect(hwndPanel, NULL, TRUE);
 					break;
 				case IDM_FILE_CONTROL:
-					//RegisterDialogClass(hwnd);
-					memset(&wc, 0, sizeof(wc));
-					wc.cbSize = sizeof(WNDCLASSEX);
-					wc.lpfnWndProc = (WNDPROC) ControlProc;
-					wc.hInstance = ghInstance;
-					wc.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
-					wc.lpszClassName = L"ControlClass";
-					RegisterClassExW(&wc);
+					memset(&wc1, 0, sizeof(wc1));
+					wc1.cbSize = sizeof(WNDCLASSEX);
+					wc1.lpfnWndProc = (WNDPROC) ControlProc;
+					wc1.hInstance = ghInstance;
+					wc1.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+					wc1.lpszClassName = L"ControlClass";
+					RegisterClassExW(&wc1);
 					
 					hwnd_control = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT, L"ControlClass", 
 						L"Dialog Box", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 800, 550, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
 
 					EnableWindow(hwnd, FALSE);	// make hwnd_tmp modal window
+
+
+					break;
+				case IDM_FILE_CUSTOM:
+					memset(&wc2, 0, sizeof(wc2));
+					wc2.cbSize = sizeof(WNDCLASSEX);
+					wc2.lpfnWndProc = (WNDPROC) CustomProc;
+					wc2.hInstance = ghInstance;
+					wc2.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+					wc2.lpszClassName = L"CustomWindowClass";
+					RegisterClassExW(&wc2);
+					
+					hwnd_control = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT, L"CustomWindowClass", 
+						L"Custom Control Example", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
+						100, 100, 800, 550, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
+
+					EnableWindow(hwnd, FALSE);	// make hwnd_tmp modal window
+
+
 
 
 					break;
@@ -369,7 +389,8 @@ void AddMenus (HWND hwnd) {
 
 	AppendMenuW(hMenu1, MF_POPUP, (UINT_PTR) submenu1, L"&Submenu1");
 
-	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_CONTROL, L"&Control");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_CONTROL, L"Win32 Standard &Control");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_CUSTOM, L"Custom C&ontrol");
 
 	AppendMenuW(hMenu1, MF_SEPARATOR, 0, NULL);
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_QUIT, L"&Quit");
@@ -394,9 +415,6 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	int i = 0;
 	BOOL ret;
 	TCITEMW tabItem1, tabItem2;
-	PAINTSTRUCT ps;
-	RECT r;
-	HDC hdc;
 	WCHAR os_list[5][32] = {L"MSDOS", L"Windows 98 SE", L"Windows ME", L"Windows XP", L"Windows 7"};
 	WCHAR os_other[6][32] = {L"UNIX", L"Linux", L"BSD", L"Plan 9", L"Mac OS X", L"OS/2 WARP"};
 
@@ -658,24 +676,11 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_PAINT:
-			hdc = BeginPaint(hwnd, &ps);
-
-			GetClientRect(hwnd, &r);
-
-			for (i=0; i<1000; i++) {
-				int x, y;
-				x = (rand() % r.right - r.left);
-				y = (rand() % r.bottom - r.top);
-				SetPixel(hdc, x, y, RGB(255, 0, 0));
-			}
-
-			EndPaint(hwnd, &ps);
 			break;
 		case WM_CLOSE:
 			hwnd_parent = GetWindow(hwnd, GW_OWNER);
 			ret = EnableWindow(hwnd_parent, TRUE);
 			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"DEBUG", MB_OK);
-			
 			
 			ShowWindow(hwnd_parent, SW_RESTORE);
 			ShowWindow(hwnd_parent, SW_SHOW);
@@ -696,6 +701,91 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	
 }
 
+
+LRESULT CALLBACK CustomProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+	HWND hwnd_parent;
+	BOOL ret;
+	HDC hdc, hdc_tmp, hdc_tmp2;
+	PAINTSTRUCT ps, ps2;
+	RECT r;
+	int i;
+	HPEN pen_solid1, pen_solid2, holdPen, holdPen2;
+
+	switch (msg) {
+		case WM_CREATE:
+
+			break;
+		case WM_PAINT:
+			GetClientRect(hwnd, &r);
+
+			hdc = BeginPaint(hwnd, &ps);
+
+			// draw line & super sample anti aliasing
+			HDC hdc_nul = GetDC(NULL);
+			hdc_tmp = CreateCompatibleDC(hdc_nul);
+
+			pen_solid1 = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+			holdPen = SelectObject(hdc_tmp, pen_solid1);
+
+			HBITMAP bmp = CreateCompatibleBitmap(hdc, 400, 400);
+			SelectObject(hdc_tmp, bmp);
+
+			RECT rc = {0, 0, 400, 400};
+			FillRect(hdc_tmp, &rc, GetStockObject(WHITE_PEN));
+
+			MoveToEx(hdc_tmp, 0, 0, NULL);
+			LineTo(hdc_tmp, 50, 200);
+
+			//SetStretchBltMode(hdc_tmp, HALFTONE);
+			//BitBlt(hdc, 0, 0, 400, 400, hdc_tmp, 0, 0, SRCCOPY);
+			
+			//StretchBlt(hdc, 250, 0, 200, 200, hdc_tmp, 0, 0, 400, 400, SRCCOPY);
+			//HBITMAP hTempBitmap = CreateCompatibleBitmap(hdc, 200, 200);
+			//SelectObject(hdc, hTempBitmap);
+			//SetStretchBltMode(hdc, HALFTONE);
+
+			hdc_tmp2 = CreateCompatibleDC(hdc_nul);
+			HBITMAP bmp2 = CreateCompatibleBitmap(hdc_tmp2, 800, 800);
+			SelectObject(hdc_tmp2, bmp2);
+			FillRect(hdc_tmp2, &rc, GetStockObject(WHITE_PEN));
+			SetStretchBltMode(hdc, HALFTONE);
+			StretchBlt(hdc_tmp2, 0, 0, 800, 800, hdc_tmp, 0, 0, 200, 200, SRCCOPY);
+
+			//SelectObject(hdc_tmp2, bmp2);
+			//SetStretchBltMode(hdc, HALFTONE);
+			
+			StretchBlt(hdc, 0, 0, 200, 200, hdc_tmp2, 0, 0, 800, 800, SRCCOPY);
+
+
+			/*pen_solid2 = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+			holdPen2 = SelectObject(hdc_tmp, pen_solid2);
+			MoveToEx(hdc, 400, 400, NULL);
+			LineTo(hdc, 500, 600);*/
+			
+			// draw random pixel
+			for (i=0; i<1000; i++) {
+				int x, y;
+				x = (rand() % r.right - r.left);
+				y = (rand() % r.bottom - r.top);
+				//SetPixel(hdc, x, y, RGB(255, 0, 0));
+			}
+
+			EndPaint(hwnd, &ps);
+			break;
+		case WM_CLOSE:
+			hwnd_parent = GetWindow(hwnd, GW_OWNER);
+			ret = EnableWindow(hwnd_parent, TRUE);
+			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"DEBUG", MB_OK);
+			
+			ShowWindow(hwnd_parent, SW_RESTORE);
+			ShowWindow(hwnd_parent, SW_SHOW);
+
+			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
+			DestroyWindow(hwnd);
+	}
+
+	return DefWindowProcW(hwnd, msg, wParam, lParam);
+}
 
 LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	int ctrlID;
@@ -844,7 +934,7 @@ void LoadFile_internal (LPCWSTR file) {
 	ReadFile(hFile, lpsBuffer, dwSize, &dw, NULL);
 	CloseHandle(hFile);
 
-	MultiByteToWideChar(CP_UTF8, 0, (LPCCH)lpsBuffer, dwSize, text_buf, dwSize);
+	MultiByteToWideChar(CP_UTF8, 0, (LPCCH) lpsBuffer, dwSize, text_buf, dwSize);
 	SetWindowTextW(ghwndEdit, (LPWSTR) text_buf);		// BUG: buffer overflow, replace lpsBuffer with L"abcd text"
 
 	HeapFree(GetProcessHeap(), 0, lpsBuffer);
@@ -997,7 +1087,7 @@ HWND CreateRebar (HWND hwnd_parent, HWND hwnd_target) {
 
 	// Set values unique to the band with the combo box.
 	GetWindowRect(hwnd_target, &rc);
-	rbBand.lpText = "target";
+	rbBand.lpText = L"target";
 	rbBand.hwndChild = hwnd_target;
 	rbBand.cxMinChild = rc.right - rc.left;
 	rbBand.cyMinChild = rc.bottom - rc.top;

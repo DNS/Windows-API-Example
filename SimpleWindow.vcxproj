@@ -19,6 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="info.rc">
+      <SubType>
+      </SubType>
+      <FileType>RC</FileType>
+    </ClCompile>
     <ClCompile Include="simplewindow.c">
       <FileType>Text</FileType>
     </ClCompile>

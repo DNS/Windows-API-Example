@@ -18,6 +18,9 @@
     <ClCompile Include="simplewindow.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="info.rc">
+      <Filter>Resource Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
