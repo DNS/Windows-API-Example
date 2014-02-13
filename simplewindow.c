@@ -716,9 +716,9 @@ LRESULT CALLBACK CustomProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 
 	switch (msg) {
 		case WM_CREATE:
-			CreateWindowW(L"STATIC", L"Super Sample Anti Aliasing 8x", 
+			CreateWindowW(L"STATIC", L"Super Sample Anti Aliasing 8x \n(Bilinear/HALFTONE)", 
 				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
-				50, 250, 250, 17, hwnd, (HMENU) 4714, NULL, NULL);
+				50, 250, 250, 37, hwnd, (HMENU) 4714, NULL, NULL);
 			CreateWindowW(L"STATIC", L"Original (No AA)", 
 				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
 				380, 250, 250, 17, hwnd, (HMENU) 4714, NULL, NULL);
@@ -738,7 +738,7 @@ LRESULT CALLBACK CustomProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 
 			bmp = CreateCompatibleBitmap(hdc, 200*ssaa_scale, 200*ssaa_scale);
 			SelectObject(hdc_tmp, bmp);
-
+			
 			rc.left = 0;
 			rc.top = 0;
 			rc.right = 200*ssaa_scale;
@@ -749,17 +749,19 @@ LRESULT CALLBACK CustomProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 			MoveToEx(hdc_tmp, 0, 0, NULL);
 			LineTo(hdc_tmp, 50*ssaa_scale, 200*ssaa_scale);
 
+			Ellipse(hdc_tmp, 30*ssaa_scale, 30*ssaa_scale, 120*ssaa_scale, 90*ssaa_scale);
 
 			SetStretchBltMode(hdc, HALFTONE);
 			StretchBlt(hdc, 50, 0, 200, 200, hdc_tmp, 0, 0, 200*ssaa_scale, 200*ssaa_scale, SRCCOPY);
 
 
-			// draw line without AA
+			// draw line & elipse without AA
 			pen_solid2 = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
 			holdPen2 = SelectObject(hdc_tmp, pen_solid2);
 			MoveToEx(hdc, 400, 0, NULL);
 			LineTo(hdc, 50+400, 200+0);
-			
+			Ellipse(hdc, 30+400, 30+0, 120+400, 90);
+
 			// draw random pixel
 			for (i=0; i<1000; i++) {
 				int x, y;
@@ -769,8 +771,18 @@ LRESULT CALLBACK CustomProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 			}
 
 			EndPaint(hwnd, &ps);
+
+			// free heap
+			DeleteObject(bmp);
+			DeleteObject(pen_solid1);
+			DeleteObject(pen_solid2);
+			DeleteObject(holdPen);
+			DeleteObject(holdPen2);
+			DeleteDC(hdc_tmp);
+			DeleteDC(hdc);
 			break;
 		case WM_CLOSE:
+			
 			hwnd_parent = GetWindow(hwnd, GW_OWNER);
 			ret = EnableWindow(hwnd_parent, TRUE);
 			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"DEBUG", MB_OK);
@@ -780,6 +792,10 @@ LRESULT CALLBACK CustomProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 
 			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
 			DestroyWindow(hwnd);
+			break;
+		case WM_DESTROY:
+			
+			break;
 	}
 
 	return DefWindowProcW(hwnd, msg, wParam, lParam);
