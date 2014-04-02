@@ -566,7 +566,8 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			kurtd3_bitmap = LoadImageW(NULL, L"kurtd3.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 			SendMessageW(staticimage1, STM_SETIMAGE, IMAGE_BITMAP, kurtd3_bitmap);
 
-
+			DeleteObject(kurtd3_bitmap);
+			DeleteObject(hImg);
 
 			break;
 
@@ -688,8 +689,8 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
 			DestroyWindow(hwnd);
 
-			DeleteObject(kurtd3_bitmap);
-			DeleteObject(hImg);
+			//DeleteObject(kurtd3_bitmap);
+			//DeleteObject(hImg);
 			break; 
 		case WM_DESTROY:
 			
@@ -780,6 +781,7 @@ LRESULT CALLBACK CustomProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 			DeleteObject(holdPen2);
 			DeleteDC(hdc_tmp);
 			DeleteDC(hdc);
+
 			break;
 		case WM_CLOSE:
 			
