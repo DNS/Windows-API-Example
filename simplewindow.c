@@ -1,11 +1,17 @@
+/*
+	Name    : Win32 API samples (without resource file)
+	Author  : Daniel Sirait <dns@cpan.org>
+	License : Public Domain
+*/
+
 
 /* force MSVC to use WideChar function, must be declared before #include <windows.h> */
 #define UNICODE
 
-#include <stdio.h>
+//#include <stdio.h>
 #include <windows.h>
 #include <commctrl.h>
-#include <richedit.h>
+//#include <richedit.h>
 
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
@@ -29,7 +35,7 @@ HWND ghSb;
 HMENU hMenubar1, hMenu1, submenu1, hMenubar2, hMenu2, hPopUp1;
 HINSTANCE ghInstance;
 HWND ghwndEdit, staticimage1;
-HWND hEdit , hLabel, button1, button2, checkbox1;
+HWND hEdit , hLabel, button1, button2, checkbox1, tabButton1;
 HWND radiobtn1, radiobtn2, radiobtn3;
 HWND hProgressBar, treeview1;
 HFONT hfont1, hfont2, hfont3;
@@ -49,7 +55,7 @@ HMODULE hmod;
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK ControlProc (HWND, UINT, WPARAM, LPARAM);
-LRESULT CALLBACK CustomProc (HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK aaProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PanelProc (HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK DestroyChildWindow(HWND, LPARAM);
 
@@ -113,6 +119,11 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 		WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_TABSTOP, 
 		0, 0, 800, 600, (HWND) NULL, (HMENU) NULL, hInstance, NULL);
 	
+
+	LONG style = GetWindowLong(hwnd, GWL_STYLE);
+	//style = style & ~(WS_MINIMIZEBOX | WS_SYSMENU);
+	
+	SetWindowLong(hwnd, GWL_STYLE, style);
 	
 	//ShowWindow(hwnd, nCmdShow);
 	//UpdateWindow(hwnd);
@@ -146,7 +157,7 @@ BOOL CALLBACK DestroyChildWindow(HWND hwnd, LPARAM lParam) {
 }
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	HWND hwnd_control, hwnd_dialog;
+	HWND hwnd_control, hwnd_dialog, hwnd_aa;
 	POINT point;
 	UINT state;
 	static HWND hwndPanel;
@@ -248,6 +259,8 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 						L"Dialog Box", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 800, 550, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
 
+					
+
 					EnableWindow(hwnd, FALSE);	// make hwnd_tmp modal window
 
 
@@ -255,14 +268,14 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 				case IDM_FILE_CUSTOM:
 					memset(&wc2, 0, sizeof(wc2));
 					wc2.cbSize = sizeof(WNDCLASSEX);
-					wc2.lpfnWndProc = (WNDPROC) CustomProc;
+					wc2.lpfnWndProc = (WNDPROC) aaProc;
 					wc2.hInstance = ghInstance;
 					wc2.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
 					wc2.lpszClassName = L"CustomWindowClass";
 					RegisterClassExW(&wc2);
 					
-					hwnd_control = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT, L"CustomWindowClass", 
-						L"Custom Control Example", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
+					hwnd_aa = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT, L"CustomWindowClass", 
+						L"Anti Aliasing Example", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 600, 400, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
 
 					EnableWindow(hwnd, FALSE);	// make hwnd_tmp modal window
@@ -390,7 +403,7 @@ void AddMenus (HWND hwnd) {
 	AppendMenuW(hMenu1, MF_POPUP, (UINT_PTR) submenu1, L"&Submenu1");
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_CONTROL, L"Win32 Standard &Control");
-	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_CUSTOM, L"Custom C&ontrol");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_CUSTOM, L"&Anti Aliasing");
 
 	AppendMenuW(hMenu1, MF_SEPARATOR, 0, NULL);
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_QUIT, L"&Quit");
@@ -409,14 +422,16 @@ void AddMenus (HWND hwnd) {
 LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	HWND hwnd_parent;
 	UINT checked;
-	int ctrlID, requestID, position;
-	LPNMHDR lpNmHdr;
+	int ctrlID, requestID, position, tab_index;
+	LPNMHDR lpnmhdr;
 	SYSTEMTIME time;
 	int i = 0;
 	BOOL ret;
-	TCITEMW tabItem1, tabItem2;
+	TCITEMW tabItem1, tabItem2, tabItem3, tabItem4, tabItem5;
 	WCHAR os_list[5][32] = {L"MSDOS", L"Windows 98 SE", L"Windows ME", L"Windows XP", L"Windows 7"};
 	WCHAR os_other[6][32] = {L"UNIX", L"Linux", L"BSD", L"Plan 9", L"Mac OS X", L"OS/2 WARP"};
+
+	hwnd_parent = GetWindow(hwnd, GW_OWNER);
 
 	//IsDialogMessageW(hwnd, (LPMSG) &msg);
 	switch (msg) {
@@ -430,12 +445,12 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
 				20, 80, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
 
-			button1 = CreateWindowW(L"BUTTON", L"&Button", WS_VISIBLE | WS_CHILD | WS_TABSTOP,
+			button1 = CreateWindowW(L"BUTTON", L"&Button", WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_DISABLED,
 				20, 50, 90, 25, hwnd, (HMENU) 600, NULL, NULL);
 			hImg = LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
 			SendMessageW(button1, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM) hImg);
 			
-			button2 = CreateWindowW(L"BUTTON", L"&Quit", WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_DISABLED,
+			button2 = CreateWindowW(L"BUTTON", L"&Quit", WS_VISIBLE | WS_CHILD | WS_TABSTOP,
 				120, 50, 80, 25, hwnd, (HMENU) 650, NULL, NULL);
 
 			checkbox1 = CreateWindowW(L"BUTTON", L"This is &Checkbox", 
@@ -476,23 +491,23 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				20, 200, 225, 160, hwnd, (HMENU) 4001, NULL, NULL);
 
 			// GroupBox
-			groupbox1 = CreateWindowW(TEXT("BUTTON"), TEXT("Choose Color"),
+			groupbox1 = CreateWindowW(L"BUTTON", L"Choose Color",
 				WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
 				260, 20, 120, 150, hwnd, (HMENU) NULL, NULL, NULL);
-			radiobtn1 = CreateWindowW(TEXT("BUTTON"), TEXT("Blue"),
+			radiobtn1 = CreateWindowW(L"BUTTON", L"Blue",
 				WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | WS_GROUP,	// WS_GROUP: start exclusive radiobtn
 				270, 40, 100, 30, hwnd, (HMENU) 6001, NULL, NULL);
-			radiobtn2 = CreateWindowW(TEXT("BUTTON"), TEXT("Yellow"),
+			radiobtn2 = CreateWindowW(L"BUTTON", L"Yellow",
 				WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON | WS_GROUP,	// WS_GROUP: start another exclusive, until radiobtn3
 				270, 65, 100, 30, hwnd, (HMENU) 6002, NULL, NULL);
-			radiobtn3 = CreateWindowW(TEXT("BUTTON"), TEXT("Orange"),
+			radiobtn3 = CreateWindowW(L"BUTTON", L"Orange",
 				WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
 				270, 90, 100, 30, hwnd, (HMENU) 6003, NULL, NULL);
 
 			SendMessageW(radiobtn2, BM_SETCHECK, BST_CHECKED, TRUE);		// set default value to radiobtn2
 
 			// ComboBox: CBS_DROPDOWN or CBS_DROPDOWNLIST, msg CB_SETCURSEL, CB_GETCURSEL
-			hCombo = CreateWindowW(TEXT("COMBOBOX"), NULL,
+			hCombo = CreateWindowW(L"COMBOBOX", NULL,
 				WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST,
 				410, 20, 120, 110, hwnd, NULL, NULL, NULL);
 
@@ -520,8 +535,9 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			SendMessageW(hProgressBar, PBM_SETSTEP, 1, 0);
 			SendMessageW(hProgressBar, PBM_SETPOS, 100, 0);
 
+			
 			// WC_TABCONTROL or "SysTabControl32"
-			hTab = CreateWindowW(L"SysTabControl32", NULL, WS_CHILD | WS_VISIBLE,
+			hTab = CreateWindowW(L"SysTabControl32", NULL, WS_CHILD | WS_VISIBLE | TCS_MULTILINE,
 				400, 70, 150, 150, hwnd, (HMENU) 2444, NULL, NULL);
 
 			tabItem1.mask = TCIF_TEXT;
@@ -530,9 +546,25 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			tabItem2.mask = TCIF_TEXT;
 			tabItem2.pszText = L"Tab 2";
 
+			tabItem3.mask = TCIF_TEXT;
+			tabItem3.pszText = L"Tab 3";
+
+			tabItem4.mask = TCIF_TEXT;
+			tabItem4.pszText = L"Tab 4";
+
+			tabItem5.mask = TCIF_TEXT;
+			tabItem5.pszText = L"Tab 5";
+
 			SendMessageW(hTab, TCM_INSERTITEM, 0, (LPARAM) &tabItem1);
 			SendMessageW(hTab, TCM_INSERTITEM, 1, (LPARAM) &tabItem2);
+			SendMessageW(hTab, TCM_INSERTITEM, 2, (LPARAM) &tabItem3);
+			SendMessageW(hTab, TCM_INSERTITEM, 3, (LPARAM) &tabItem4);
+			SendMessageW(hTab, TCM_INSERTITEM, 4, (LPARAM) &tabItem5);
 
+			tabButton1 = CreateWindowW(L"BUTTON", L"Tab Button", WS_CHILD | WS_VISIBLE, 
+				430, 140, 90, 30, hwnd, (HMENU) 3444, NULL, NULL);
+
+			BringWindowToTop(tabButton1);
 
 			// CW_LISTBOX or "LISTBOX"
 			listbox1 = CreateWindowExW(WS_EX_CLIENTEDGE, L"LISTBOX", NULL, 
@@ -566,8 +598,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			kurtd3_bitmap = LoadImageW(NULL, L"kurtd3.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 			SendMessageW(staticimage1, STM_SETIMAGE, IMAGE_BITMAP, kurtd3_bitmap);
 
-			DeleteObject(kurtd3_bitmap);
-			DeleteObject(hImg);
+			
 
 			break;
 
@@ -585,6 +616,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					break;
 				case 650:
 					SendMessageW(hwnd, WM_CLOSE, 0, 0);
+					BringWindowToTop(hwnd_parent);		// show parent window
 					break;
 				case 700:
 					checked = IsDlgButtonChecked(hwnd, 700);
@@ -598,6 +630,9 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					break;
 				case 800:
 					SetWindowTextW(hwnd, L"asd");
+					break;
+				case 3444:
+					MessageBoxW(NULL, L"tabButton1 clicked", L"DEBUG", MB_OK);
 					break;
 				case 3555:
 					i = SendMessageW(listbox1, LB_GETCURSEL, 0, 0);
@@ -668,33 +703,46 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			
 			break;
 		case WM_NOTIFY:
-			lpNmHdr = (LPNMHDR) lParam;
-			if (lpNmHdr->code == MCN_SELECT) {
-				ZeroMemory(&time, sizeof(SYSTEMTIME));
-				SendMessageW(hMonthCal, MCM_GETCURSEL, 0, (LPARAM) &time);
-				swprintf(s_buf, 400, L"%d-%d-%d", time.wYear, time.wMonth, time.wDay);
-				SetWindowTextW(hDebugLabel, s_buf);
+			lpnmhdr = (LPNMHDR) lParam;
+			
+			switch (lpnmhdr->code) {
+				case MCN_SELECT:
+					ZeroMemory(&time, sizeof(SYSTEMTIME));
+					SendMessageW(hMonthCal, MCM_GETCURSEL, 0, (LPARAM) &time);
+					// BUG wsprintf (win api): max buffer = 1024
+					swprintf(s_buf, L"%d-%d-%d", time.wYear, time.wMonth, time.wDay);
+					
+					SetWindowTextW(hDebugLabel, s_buf);
+					break;
+                case TCN_SELCHANGE:
+					tab_index = SendMessageW(hTab, TCM_GETCURSEL, 0, 0);
+					if (tab_index == 0) {
+						ShowWindow(tabButton1, SW_SHOW);
+						BringWindowToTop(tabButton1);
+					} else ShowWindow(tabButton1, SW_HIDE);
+					break;
 			}
 			break;
 		case WM_PAINT:
 			break;
 		case WM_CLOSE:
-			hwnd_parent = GetWindow(hwnd, GW_OWNER);
 			ret = EnableWindow(hwnd_parent, TRUE);
 			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"DEBUG", MB_OK);
-			
-			ShowWindow(hwnd_parent, SW_RESTORE);
-			ShowWindow(hwnd_parent, SW_SHOW);
+
+			BringWindowToTop(hwnd_parent);		// show parent window
 
 			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
 			DestroyWindow(hwnd);
 
-			//DeleteObject(kurtd3_bitmap);
-			//DeleteObject(hImg);
+			DeleteObject(kurtd3_bitmap);
+			DeleteObject(hImg);
+			
 			break; 
 		case WM_DESTROY:
 			
 			break;
+		default: 
+            return DefWindowProc(hwnd, msg, wParam, lParam); 
 	}
 	
 	
@@ -703,84 +751,141 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 }
 
 
-LRESULT CALLBACK CustomProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	HWND hwnd_parent;
 	BOOL ret;
-	HDC hdc, hdc_tmp;
+	HDC hdc, hdc_tmp, hdc_aa;
 	PAINTSTRUCT ps, ps2;
-	RECT r;
-	int i;
-	HPEN pen_solid1, pen_solid2, holdPen, holdPen2;
+	//RECT r;
+	int i, j;
+	HPEN pen_solid1, pen_solid2, holdPen1, holdPen2;
 	RECT rc;
 	int ssaa_scale;
 	HBITMAP bmp;
+	HBITMAP bmp_tmp;
+	BITMAPINFO bi_aa = {0}, bi_tmp = {0};
+	LPCOLORREF pbits, pbits_tmp;
 
 	switch (msg) {
 		case WM_CREATE:
-			CreateWindowW(L"STATIC", L"Super Sample Anti Aliasing 8x \n(Bilinear/HALFTONE)", 
+			CreateWindowW(L"STATIC", L"Anti Aliasing 2x \n(Bilinear interpolation)", 
 				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
 				50, 250, 250, 37, hwnd, (HMENU) 4714, NULL, NULL);
 			CreateWindowW(L"STATIC", L"Original (No AA)", 
 				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
 				380, 250, 250, 17, hwnd, (HMENU) 4714, NULL, NULL);
+
+			//InvalidateRect(hwnd, NULL, FALSE);
+
 			break;
 		case WM_PAINT:
-			GetClientRect(hwnd, &r);
+			//GetClientRect(hwnd, &r);
 
 			hdc = BeginPaint(hwnd, &ps);
 			
-
 			// draw line & super sample anti aliasing
-			ssaa_scale = 8;
+			ssaa_scale = 2;
+
+			bi_tmp.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+			bi_tmp.bmiHeader.biWidth = 200*ssaa_scale;
+			bi_tmp.bmiHeader.biHeight = 200*ssaa_scale;
+			bi_tmp.bmiHeader.biPlanes = 1;
+			bi_tmp.bmiHeader.biBitCount = 32;
+			bi_tmp.bmiHeader.biCompression = BI_RGB;
+
 			hdc_tmp = CreateCompatibleDC(NULL);
-
 			pen_solid1 = CreatePen(PS_SOLID, ssaa_scale, RGB(0, 0, 0));
-			holdPen = SelectObject(hdc_tmp, pen_solid1);
-
-			bmp = CreateCompatibleBitmap(hdc, 200*ssaa_scale, 200*ssaa_scale);
-			SelectObject(hdc_tmp, bmp);
+			holdPen1 = SelectObject(hdc_tmp, pen_solid1);
+			//bmp_tmp = CreateCompatibleBitmap(hdc, 200*ssaa_scale, 200*ssaa_scale);
+			bmp_tmp = CreateDIBSection(NULL, &bi_tmp, DIB_RGB_COLORS, &pbits_tmp, NULL, 0);
+			SelectObject(hdc_tmp, bmp_tmp);
 			
 			rc.left = 0;
 			rc.top = 0;
 			rc.right = 200*ssaa_scale;
 			rc.bottom = 200*ssaa_scale;
 
-			FillRect(hdc_tmp, &rc, GetStockObject(WHITE_PEN));
+			//////
+
+			COLORREF cr = GetPixel(hdc, 10, 0);		// get background color
+			HBRUSH brush = CreateSolidBrush(cr);
+			FillRect(hdc_tmp, &rc, brush);
 
 			MoveToEx(hdc_tmp, 0, 0, NULL);
 			LineTo(hdc_tmp, 50*ssaa_scale, 200*ssaa_scale);
-
 			Ellipse(hdc_tmp, 30*ssaa_scale, 30*ssaa_scale, 120*ssaa_scale, 90*ssaa_scale);
 
-			SetStretchBltMode(hdc, HALFTONE);
-			StretchBlt(hdc, 50, 0, 200, 200, hdc_tmp, 0, 0, 200*ssaa_scale, 200*ssaa_scale, SRCCOPY);
 
+			//SetStretchBltMode(hdc, HALFTONE);
+			//StretchBlt(hdc, 50, 0, 200, 200, hdc_tmp, 0, 0, 200*ssaa_scale, 200*ssaa_scale, SRCCOPY);
+			COLORREF cr1, cr2, cr3, cr4;
+			BYTE red, green, blue;
+			
+			bi_aa.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+			bi_aa.bmiHeader.biWidth = 200;
+			bi_aa.bmiHeader.biHeight = -200;
+			bi_aa.bmiHeader.biPlanes = 1;
+			bi_aa.bmiHeader.biBitCount = 32;
+			bi_aa.bmiHeader.biCompression = BI_RGB;
 
-			// draw line & elipse without AA
-			pen_solid2 = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
-			holdPen2 = SelectObject(hdc_tmp, pen_solid2);
-			MoveToEx(hdc, 400, 0, NULL);
-			LineTo(hdc, 50+400, 200+0);
-			Ellipse(hdc, 30+400, 30+0, 120+400, 90);
+			bmp = CreateDIBSection(NULL, &bi_aa, DIB_RGB_COLORS, &pbits, NULL, 0);
+			hdc_aa = CreateCompatibleDC(NULL);
+			SelectObject(hdc_aa, bmp);
 
-			// draw random pixel
-			for (i=0; i<1000; i++) {
-				int x, y;
-				x = (rand() % r.right - r.left);
-				y = (rand() % r.bottom - r.top);
-				//SetPixel(hdc, x, y, RGB(255, 0, 0));
+			int count = 0;
+			// Bilinear interpolation
+			for (i=0; i<200; i++) {
+				for (j=0; j<200; j++) {
+					cr1 = GetPixel(hdc_tmp, i*2, j*2);
+					cr2 = GetPixel(hdc_tmp, i*2, 1+j*2);
+					cr3 = GetPixel(hdc_tmp, 1+i*2, j*2);
+					cr4 = GetPixel(hdc_tmp, 1+i*2, 1+j*2);
+
+					red = (GetRValue(cr1) + GetRValue(cr2) + GetRValue(cr3) + GetRValue(cr4)) / 4;
+					green = (GetGValue(cr1) + GetGValue(cr2) + GetGValue(cr3) + GetGValue(cr4)) / 4;
+					blue = (GetBValue(cr1) + GetBValue(cr2) + GetBValue(cr3) + GetBValue(cr4)) / 4;
+
+					// BUG: SetPixel() is too slow, use BitBlt instead
+					//SetPixelV(hdc, i, j, RGB(red, green, blue));
+
+					pbits[j*200+i] = RGB(red, green, blue);
+				}
 			}
+			/*int c = 0;
+			for (i=0; i<200; i++) {
+				for (j=0; j<200; j++) {
+				cr1 = pbits_tmp[i*2 + j*2];
+				cr2 = pbits_tmp[(i*2) + (1+j*2)];
+				cr3 = pbits_tmp[(1+i*2) + (1+j*2)];
+				cr4 = pbits_tmp[(1+i*2) + (1+j*2)];
+
+				red = (GetRValue(cr1) + GetRValue(cr2) + GetRValue(cr3) + GetRValue(cr4)) / 4;
+				green = (GetGValue(cr1) + GetGValue(cr2) + GetGValue(cr3) + GetGValue(cr4)) / 4;
+				blue = (GetBValue(cr1) + GetBValue(cr2) + GetBValue(cr3) + GetBValue(cr4)) / 4;
+
+				pbits[i+j*200] = RGB(red, green, blue);
+				}
+			}*/
+			
+			BitBlt(hdc, 0, 0, 200, 200, hdc_aa, 0, 0, SRCCOPY);
+
+			// draw line & elipse without AA (original)
+			pen_solid2 = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+			holdPen2 = SelectObject(hdc, pen_solid2);
+			MoveToEx(hdc, 400, 0, NULL);
+			LineTo(hdc, 50+400, 200);
+			Ellipse(hdc, 30+400, 30, 120+400, 90);
 
 			EndPaint(hwnd, &ps);
-
+			
 			// free heap
-			DeleteObject(bmp);
-			DeleteObject(pen_solid1);
-			DeleteObject(pen_solid2);
-			DeleteObject(holdPen);
+			//DeleteObject(bmp);
+			//DeleteObject(pen_solid1);
+			//DeleteObject(holdPen1);
+			/*DeleteObject(pen_solid2);
 			DeleteObject(holdPen2);
 			DeleteDC(hdc_tmp);
-			DeleteDC(hdc);
+			DeleteDC(hdc);*/
 
 			break;
 		case WM_CLOSE:
@@ -1010,59 +1115,59 @@ void CreateTrackBar (HWND hwnd) {
 void UpdateTrackBar (HWND hTrackBar) {
 	LRESULT pos = SendMessageW(hTrackBar, TBM_GETPOS, 0, 0);
 	wsprintfW(s_buf, L"%ld", pos);			// Win32 API
-	//swprintf(s_buf, 100, L"%ld", pos);	// ANSI C
+	//swprintf(s_buf, L"%ld", pos);	// ANSI C
 	SetWindowTextW(hDebugLabel, s_buf);
 }
 
 
 HWND BuildToolBar (HWND hwnd) {
-    HWND hToolBar;
-    TBBUTTON tbb[4];
-    TBADDBITMAP tbab;
+	HWND hToolBar;
+	TBBUTTON tbb[4];
+	TBADDBITMAP tbab;
 	WCHAR wcsString[] = L"\u9580\u961c\u9640\u963f\u963b\u9644";
 
 	// TOOLBARCLASSNAME or "ToolBarWindow32"
-    hToolBar = CreateWindowW(L"ToolBarWindow32", NULL, 
+	hToolBar = CreateWindowW(L"ToolBarWindow32", NULL, 
 		WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TBSTYLE_TOOLTIPS |
 		TBSTYLE_FLAT | CCS_TOP | BTNS_AUTOSIZE | TBSTYLE_TRANSPARENT, 
 		20, 0, 0, 0, hwnd, (HMENU) 7711, GetModuleHandle(NULL), NULL);
-    SendMessageW(hToolBar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
-    SendMessageW(hToolBar, TB_SETEXTENDEDSTYLE, 0, (LPARAM) TBSTYLE_EX_HIDECLIPPEDBUTTONS);
+	SendMessageW(hToolBar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
+	SendMessageW(hToolBar, TB_SETEXTENDEDSTYLE, 0, (LPARAM) TBSTYLE_EX_HIDECLIPPEDBUTTONS);
 
-    tbab.hInst = NULL;	//HINST_COMMCTRL;
+	tbab.hInst = NULL;	//HINST_COMMCTRL;
 	tbab.nID = (UINT_PTR) hBitmap;	//IDB_STD_SMALL_COLOR;
 
-    SendMessageW(hToolBar, TB_ADDBITMAP, 0, (LPARAM) &tbab);
+	SendMessageW(hToolBar, TB_ADDBITMAP, 0, (LPARAM) &tbab);
 
-    ZeroMemory(tbb, sizeof(tbb));
+	ZeroMemory(tbb, sizeof(tbb));
 	
-    tbb[0].iBitmap = 0;		// bitmap index
+	tbb[0].iBitmap = 0;		// bitmap index
 	tbb[0].iString = L"New";
-    tbb[0].fsState = TBSTATE_ENABLED;
-    tbb[0].fsStyle = TBSTYLE_BUTTON;
-    tbb[0].idCommand = IDM_FILE_NEW;
+	tbb[0].fsState = TBSTATE_ENABLED;
+	tbb[0].fsStyle = TBSTYLE_BUTTON;
+	tbb[0].idCommand = IDM_FILE_NEW;
 
 	tbb[1].iBitmap = 0;		// bitmap index
 	tbb[1].iString = L"Open";
-    tbb[1].fsState = TBSTATE_ENABLED;
-    tbb[1].fsStyle = TBSTYLE_BUTTON;
-    tbb[1].idCommand = IDM_FILE_OPEN;
+	tbb[1].fsState = TBSTATE_ENABLED;
+	tbb[1].fsStyle = TBSTYLE_BUTTON;
+	tbb[1].idCommand = IDM_FILE_OPEN;
 
 	tbb[2].iBitmap = 0;		// bitmap index
 	tbb[2].iString = L"Separator";
-    tbb[2].fsState = TBSTATE_ENABLED;
-    tbb[2].fsStyle = TBSTYLE_SEP;		// Separator
-    tbb[2].idCommand = IDM_FILE_QUIT;
+	tbb[2].fsState = TBSTATE_ENABLED;
+	tbb[2].fsStyle = TBSTYLE_SEP;		// Separator
+	tbb[2].idCommand = IDM_FILE_QUIT;
 
 	tbb[3].iBitmap = 0;		// bitmap index
 	tbb[3].iString = wcsString;
-    tbb[3].fsState = TBSTATE_ENABLED;
-    tbb[3].fsStyle = TBSTYLE_BUTTON;
-    tbb[3].idCommand = IDM_FILE_QUIT;
+	tbb[3].fsState = TBSTATE_ENABLED;
+	tbb[3].fsStyle = TBSTYLE_BUTTON;
+	tbb[3].idCommand = IDM_FILE_QUIT;
 
-    SendMessageW(hToolBar, TB_SETBUTTONSIZE, (WPARAM)0, (LPARAM)MAKELONG(24, 22));
-    SendMessageW(hToolBar, TB_ADDBUTTONS, sizeof(tbb) / sizeof(TBBUTTON), (LPARAM) &tbb);
-    SendMessageW(hToolBar, TB_AUTOSIZE, 0, 0);
+	SendMessageW(hToolBar, TB_SETBUTTONSIZE, (WPARAM)0, (LPARAM)MAKELONG(24, 22));
+	SendMessageW(hToolBar, TB_ADDBUTTONS, sizeof(tbb) / sizeof(TBBUTTON), (LPARAM) &tbb);
+	SendMessageW(hToolBar, TB_AUTOSIZE, 0, 0);
 
 	//SendMessageW(hToolBar, TB_SETMAXTEXTROWS, 0, 0);	// ShowToolTip
 
