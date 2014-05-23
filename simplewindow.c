@@ -8,7 +8,7 @@
 /* force MSVC to use WideChar function, must be declared before #include <windows.h> */
 #define UNICODE
 
-//#include <stdio.h>
+#include <stdio.h>
 #include <windows.h>
 #include <commctrl.h>
 //#include <richedit.h>
@@ -80,6 +80,7 @@ WCHAR s_buf[500];
 
 COLORREF gColor = RGB(255, 255, 255);
 
+
 INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 	MSG msg;
 	HWND hwnd;
@@ -87,7 +88,8 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	INITCOMMONCONTROLSEX iccex;
 	ACCEL accel[2];
 	HACCEL hAccel;
-	
+	LONG style;
+
 	//memset(&wc, 0, sizeof(wc));
 	wc.cbSize = sizeof(WNDCLASSEXW);
 	wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -120,7 +122,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 		0, 0, 800, 600, (HWND) NULL, (HMENU) NULL, hInstance, NULL);
 	
 
-	LONG style = GetWindowLong(hwnd, GWL_STYLE);
+	style = GetWindowLong(hwnd, GWL_STYLE);
 	//style = style & ~(WS_MINIMIZEBOX | WS_SYSMENU);
 	
 	SetWindowLong(hwnd, GWL_STYLE, style);
@@ -178,6 +180,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			ghSb = CreateWindowW(L"msctls_statusbar32", L"new Status bar title", 
 				WS_VISIBLE | WS_CHILD | WS_BORDER | SBARS_SIZEGRIP | CCS_BOTTOM,
 				0, 0, 0, 0, hwnd, (HMENU) 5003, NULL, NULL );
+
 			ShowWindow(ghSb, SW_HIDE);
 
 			BuildToolBar(hwnd);
@@ -445,12 +448,13 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
 				20, 80, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
 
-			button1 = CreateWindowW(L"BUTTON", L"&Button", WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_DISABLED,
+			// WS_TABSTOP: The window is a control that can receive the keyboard focus when the user presses the TAB key. 
+			button1 = CreateWindowW(L"BUTTON", L"&Button", WS_VISIBLE | WS_CHILD | WS_TABSTOP,
 				20, 50, 90, 25, hwnd, (HMENU) 600, NULL, NULL);
 			hImg = LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
 			SendMessageW(button1, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM) hImg);
 			
-			button2 = CreateWindowW(L"BUTTON", L"&Quit", WS_VISIBLE | WS_CHILD | WS_TABSTOP,
+			button2 = CreateWindowW(L"BUTTON", L"&Quit", WS_VISIBLE | WS_CHILD | WS_TABSTOP | WS_DISABLED,
 				120, 50, 80, 25, hwnd, (HMENU) 650, NULL, NULL);
 
 			checkbox1 = CreateWindowW(L"BUTTON", L"This is &Checkbox", 
@@ -465,7 +469,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			// EDIT ctrl: max 32,767 bytes
 			hEdit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"This is edit", 
-				WS_VISIBLE | WS_CHILD | ES_LEFT | ES_AUTOHSCROLL | ES_NOHIDESEL,
+				WS_VISIBLE | WS_CHILD | WS_TABSTOP | ES_LEFT | ES_AUTOHSCROLL | ES_NOHIDESEL,
 				20, 110, 185, 21, hwnd, (HMENU) 800, NULL, NULL);	// WS_BORDER
 
 			
@@ -487,7 +491,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			// Calendar
 			// MONTHCAL_CLASS/SysMonthCal32: 1. Standard 178, 156 + WS_BORDER; 2. Luna 230, 170;
 			hMonthCal = CreateWindowW(L"SysMonthCal32", NULL,
-				WS_VISIBLE | WS_CHILD,
+				WS_VISIBLE | WS_CHILD | WS_TABSTOP,
 				20, 200, 225, 160, hwnd, (HMENU) 4001, NULL, NULL);
 
 			// GroupBox
@@ -508,7 +512,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			// ComboBox: CBS_DROPDOWN or CBS_DROPDOWNLIST, msg CB_SETCURSEL, CB_GETCURSEL
 			hCombo = CreateWindowW(L"COMBOBOX", NULL,
-				WS_CHILD | WS_VISIBLE | CBS_HASSTRINGS | CBS_DROPDOWNLIST,
+				WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_HASSTRINGS | CBS_DROPDOWNLIST,
 				410, 20, 120, 110, hwnd, NULL, NULL, NULL);
 
 			SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM) L"MSDOS");
@@ -537,7 +541,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			
 			// WC_TABCONTROL or "SysTabControl32"
-			hTab = CreateWindowW(L"SysTabControl32", NULL, WS_CHILD | WS_VISIBLE | TCS_MULTILINE,
+			hTab = CreateWindowW(L"SysTabControl32", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | TCS_MULTILINE,
 				400, 70, 150, 150, hwnd, (HMENU) 2444, NULL, NULL);
 
 			tabItem1.mask = TCIF_TEXT;
@@ -596,7 +600,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				560, 50, 100, 100, hwnd, (HMENU) 9524, NULL, NULL);
 			// LoadImage(): 0 -> actual resource size,  LR_DEFAULTSIZE -> fit to parent
 			kurtd3_bitmap = LoadImageW(NULL, L"kurtd3.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-			SendMessageW(staticimage1, STM_SETIMAGE, IMAGE_BITMAP, kurtd3_bitmap);
+			SendMessageW(staticimage1, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM) kurtd3_bitmap);
 
 			
 
@@ -605,8 +609,9 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case WM_COMMAND:
 			switch (LOWORD(wParam)) {
 				case 600:
-					GetWindowTextW(hEdit, s_buf, 50);
-					SetWindowTextW(hLabel, s_buf);
+					SendMessageW(hEdit, WM_GETTEXT, 100, (LPARAM) s_buf);
+					SendMessageW(hLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
+					SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 					Beep(40, 50);
 
 					// change progress bar 
@@ -619,17 +624,17 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					BringWindowToTop(hwnd_parent);		// show parent window
 					break;
 				case 700:
-					checked = IsDlgButtonChecked(hwnd, 700);
+					checked = SendMessageW(checkbox1, BM_GETCHECK, 0, 0);
 					if (checked) {
-						CheckDlgButton(hwnd, 700, BST_UNCHECKED);
-						SetWindowTextW(hwnd, L"unchecked");
+						SendMessageW(checkbox1, BM_SETCHECK, BST_UNCHECKED, 0);
+						SendMessageW(hwnd, WM_SETTEXT, 0, (LPARAM) L"unchecked");
 					} else {
-						CheckDlgButton(hwnd, 700, BST_CHECKED);
-						SetWindowTextW(hwnd, L"checked");
+						SendMessageW(checkbox1, BM_SETCHECK, BST_CHECKED, 0);
+						SendMessageW(hwnd, WM_SETTEXT, 0, (LPARAM) L"checked");
 					}
 					break;
 				case 800:
-					SetWindowTextW(hwnd, L"asd");
+					SendMessageW(hwnd, WM_SETTEXT, 0, (LPARAM) L"asd");
 					break;
 				case 3444:
 					MessageBoxW(NULL, L"tabButton1 clicked", L"DEBUG", MB_OK);
@@ -640,7 +645,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					SendMessageW(listbox1, LB_GETTEXT, i, (LPARAM) &s_buf);	// fetch from listbox1 Control (much better)
 					//wcscpy(s_buf, os_other[i]);	// fetch from local sBuffer
 					
-					SetWindowTextW(hDebugLabel, s_buf);
+					SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 					break;
 			}
 
@@ -650,15 +655,15 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				switch (LOWORD(wParam)) {
 					case 6001:
 						wcscpy(s_buf, L"blue");
-						SetWindowTextW(hDebugLabel, s_buf);
+						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 						break;
 					case 6002:
 						wcscpy(s_buf, L"yellow");
-						SetWindowTextW(hDebugLabel, s_buf);
+						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 						break;
 					case 6003:
 						wcscpy(s_buf, L"orange");
-						SetWindowTextW(hDebugLabel, s_buf);
+						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 						break;
 				}
 			}
@@ -668,8 +673,9 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				i = SendMessageW(hCombo, CB_GETCURSEL, 0, 0);
 				SendMessageW(hCombo, CB_GETLBTEXT, i, (LPARAM) s_buf);
 				
-				SetWindowTextW(hDebugLabel, s_buf);			// fetch from hCombo (much better)
-				//SetWindowTextW(hDebugLabel, os_list[i]);	// fetch from local sBuffer
+				//SetWindowTextW(hDebugLabel, s_buf);			// fetch from hCombo (much better)
+				//SetWindowTextW(hDebugLabel, os_list[i]);		// fetch from local sBuffer
+				SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 				
 				SetFocus(hwnd);
 			}
@@ -710,9 +716,10 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					ZeroMemory(&time, sizeof(SYSTEMTIME));
 					SendMessageW(hMonthCal, MCM_GETCURSEL, 0, (LPARAM) &time);
 					// BUG wsprintf (win api): max buffer = 1024
-					swprintf(s_buf, L"%d-%d-%d", time.wYear, time.wMonth, time.wDay);
+					// BUG swprintf parameter
+					wsprintf(s_buf, L"%d-%d-%d", time.wYear, time.wMonth, time.wDay);
 					
-					SetWindowTextW(hDebugLabel, s_buf);
+					SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 					break;
                 case TCN_SELCHANGE:
 					tab_index = SendMessageW(hTab, TCM_GETCURSEL, 0, 0);
@@ -765,6 +772,11 @@ LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	HBITMAP bmp_tmp;
 	BITMAPINFO bi_aa = {0}, bi_tmp = {0};
 	LPCOLORREF pbits, pbits_tmp;
+	HBRUSH brush;
+	COLORREF cr;
+	COLORREF cr1, cr2, cr3, cr4;
+	BYTE red, green, blue;
+	int count;
 
 	switch (msg) {
 		case WM_CREATE:
@@ -806,9 +818,8 @@ LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			rc.bottom = 200*ssaa_scale;
 
 			//////
-
-			COLORREF cr = GetPixel(hdc, 10, 0);		// get background color
-			HBRUSH brush = CreateSolidBrush(cr);
+			cr = GetPixel(hdc, 10, 0);		// get background color
+			brush = CreateSolidBrush(cr);
 			FillRect(hdc_tmp, &rc, brush);
 
 			MoveToEx(hdc_tmp, 0, 0, NULL);
@@ -818,8 +829,7 @@ LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 			//SetStretchBltMode(hdc, HALFTONE);
 			//StretchBlt(hdc, 50, 0, 200, 200, hdc_tmp, 0, 0, 200*ssaa_scale, 200*ssaa_scale, SRCCOPY);
-			COLORREF cr1, cr2, cr3, cr4;
-			BYTE red, green, blue;
+			
 			
 			bi_aa.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 			bi_aa.bmiHeader.biWidth = 200;
@@ -832,7 +842,7 @@ LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			hdc_aa = CreateCompatibleDC(NULL);
 			SelectObject(hdc_aa, bmp);
 
-			int count = 0;
+			count = 0;
 			// Bilinear interpolation
 			for (i=0; i<200; i++) {
 				for (j=0; j<200; j++) {
@@ -879,13 +889,16 @@ LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			EndPaint(hwnd, &ps);
 			
 			// free heap
-			//DeleteObject(bmp);
-			//DeleteObject(pen_solid1);
-			//DeleteObject(holdPen1);
-			/*DeleteObject(pen_solid2);
+			DeleteObject(brush);
+			DeleteObject(bmp);
+			DeleteObject(bmp_tmp);
+			DeleteObject(pen_solid1);
+			DeleteObject(holdPen1);
+			DeleteObject(pen_solid2);
 			DeleteObject(holdPen2);
 			DeleteDC(hdc_tmp);
-			DeleteDC(hdc);*/
+			DeleteDC(hdc_aa);
+			DeleteDC(hdc);
 
 			break;
 		case WM_CLOSE:
@@ -1056,7 +1069,8 @@ void LoadFile_internal (LPCWSTR file) {
 	CloseHandle(hFile);
 
 	MultiByteToWideChar(CP_UTF8, 0, (LPCCH) lpsBuffer, dwSize, text_buf, dwSize);
-	SetWindowTextW(ghwndEdit, (LPWSTR) text_buf);		// BUG: buffer overflow, replace lpsBuffer with L"abcd text"
+
+	SendMessageW(ghwndEdit, WM_SETTEXT, 0, (LPARAM) text_buf);		// BUG: buffer overflow, replace lpsBuffer with L"abcd text"
 
 	HeapFree(GetProcessHeap(), 0, lpsBuffer);
 }
@@ -1074,7 +1088,7 @@ void CreateMyTooltip (HWND hwnd) {
 
 	SetWindowPos(hwndTT, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 	 
-	GetClientRect (hwnd, &rect);
+	GetClientRect(hwnd, &rect);
 
 	ti.cbSize = sizeof(TOOLINFO);
 	ti.uFlags = TTF_SUBCLASS;
@@ -1114,9 +1128,9 @@ void CreateTrackBar (HWND hwnd) {
 
 void UpdateTrackBar (HWND hTrackBar) {
 	LRESULT pos = SendMessageW(hTrackBar, TBM_GETPOS, 0, 0);
-	wsprintfW(s_buf, L"%ld", pos);			// Win32 API
-	//swprintf(s_buf, L"%ld", pos);	// ANSI C
-	SetWindowTextW(hDebugLabel, s_buf);
+	wsprintf(s_buf, L"%ld", pos);			// Win32 API
+	//swprintf(s_buf, L"%ld", pos);			// ANSI C
+	SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 }
 
 
