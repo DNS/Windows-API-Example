@@ -21,6 +21,9 @@
     <ClCompile Include="info.rc">
       <Filter>Resource Files</Filter>
     </ClCompile>
+    <ClCompile Include="splitwindow.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">

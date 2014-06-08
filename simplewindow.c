@@ -12,6 +12,7 @@
 #include <windows.h>
 #include <commctrl.h>
 //#include <richedit.h>
+#include <exdisp.h>
 
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
@@ -464,7 +465,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			//CheckDlgButton(hwnd, 700, BST_CHECKED);	// same below
 			SendMessageW(checkbox1, BM_SETCHECK, BST_CHECKED, 0);
 
-			hDebugLabel = CreateWindowW(L"STATIC", L"Debug Label !!!", WS_CHILD | WS_VISIBLE, 
+			hDebugLabel = CreateWindowW(L"STATIC", L"Debug Label !!!", WS_VISIBLE | WS_CHILD, 
 				550, 20, 200, 13, hwnd, (HMENU) 3111, NULL, NULL);
 
 			// EDIT ctrl: max 32,767 bytes
@@ -472,7 +473,8 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				WS_VISIBLE | WS_CHILD | WS_TABSTOP | ES_LEFT | ES_AUTOHSCROLL | ES_NOHIDESEL,
 				20, 110, 185, 21, hwnd, (HMENU) 800, NULL, NULL);	// WS_BORDER
 
-			
+			//hResize = CreateWindowW(L"STATIC", L"Debug Label !!!", WS_CHILD | WS_VISIBLE, 
+			//	550, 20, 200, 13, hwnd, (HMENU) 3111, NULL, NULL);
 
 			// better font
 			SendMessageW(hEdit, WM_SETFONT, (WPARAM) hfont1, TRUE);
@@ -1060,19 +1062,22 @@ void LoadFile_internal (LPCWSTR file) {
 	DWORD dwSize;
 	DWORD dw;
 	LPBYTE lpsBuffer;
-	WCHAR text_buf[5000] = {0};		/* BUG: Buffer overflow ! */
+	WCHAR text_buf[5000] = {0};		/* BUG: buffer overflow ! */
+	//PWCHAR text_buf;					/* bug fix ! Global variable */
 	
 	hFile = CreateFileW((LPCWSTR) file, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	dwSize = GetFileSize(hFile, NULL);
-	lpsBuffer = (LPBYTE) HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, dwSize + 1);
+	lpsBuffer = (LPBYTE) HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, dwSize);
 	ReadFile(hFile, lpsBuffer, dwSize, &dw, NULL);
 	CloseHandle(hFile);
 
+	//text_buf = (LPBYTE) HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS | HEAP_ZERO_MEMORY, dwSize);
 	MultiByteToWideChar(CP_UTF8, 0, (LPCCH) lpsBuffer, dwSize, text_buf, dwSize);
 
 	SendMessageW(ghwndEdit, WM_SETTEXT, 0, (LPARAM) text_buf);		// BUG: buffer overflow, replace lpsBuffer with L"abcd text"
 
 	HeapFree(GetProcessHeap(), 0, lpsBuffer);
+	//HeapFree(GetProcessHeap(), 0, text_buf);
 }
 
 
@@ -1194,7 +1199,7 @@ HWND CreateRebar (HWND hwnd_parent, HWND hwnd_target) {
 	REBARBANDINFO rbBand;
 	RECT rc;
 	HWND hwndRB;
-	DWORD dwBtnSize;
+	//DWORD dwBtnSize;
 
 	// REBARCLASSNAME or "ReBarWindow32"
 	hwndRB = CreateWindowExW(WS_EX_TOOLWINDOW, L"ReBarWindow32", NULL,
@@ -1303,6 +1308,21 @@ void CenterWindow(HWND hwnd) {
 		(GetSystemMetrics(SM_CYSCREEN) - rc.bottom) / 2,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE);
 }
+
+/*
+void web_browser () {
+	IWebBrowser2 *browser;
+	browser->
+
+}
+*/
+
+
+
+/*
+CommandLineToArgvW()
+
+*/
 
 // MessageBoxW(NULL, L"First Program", L"DEBUG", MB_OK);
 
