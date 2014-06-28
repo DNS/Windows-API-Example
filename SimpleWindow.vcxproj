@@ -24,12 +24,16 @@
       </SubType>
       <FileType>RC</FileType>
     </ClCompile>
+    <ClCompile Include="msxml-sample.c">
+      <SubType>
+      </SubType>
+      <FileType>Text</FileType>
+    </ClCompile>
     <ClCompile Include="simplewindow.c">
       <FileType>Text</FileType>
       <DisableLanguageExtensions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </DisableLanguageExtensions>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="splitwindow.c">
       <FileType>Text</FileType>
@@ -111,9 +115,9 @@
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Comctl32.lib;msxml6.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>

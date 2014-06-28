@@ -24,6 +24,9 @@
     <ClCompile Include="splitwindow.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="msxml-sample.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
