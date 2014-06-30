@@ -5,9 +5,7 @@
 #include <windows.h>
 #include <msxml6.h>
 
-#pragma comment(lib, "Comctl32.lib")
 #pragma comment(lib, "msxml6.lib")
-
 
 
 int main(){
@@ -17,7 +15,7 @@ int main(){
 	BSTR bstr;
 	VARIANT varFileName;
 	VARIANT_BOOL isSuccessful;
-
+	
 	VariantInit(&varFileName);
 	bstr = SysAllocString(L"myData.xml");
 	varFileName.vt = VT_BSTR;
@@ -25,16 +23,21 @@ int main(){
 
 	
 	CoInitialize(NULL);
-	CoCreateInstance(&CLSID_DOMDocument60, NULL, CLSCTX_INPROC_SERVER, &IID_IXMLDOMDocument, (void**) &doc);
+	
+	CoCreateInstance(&CLSID_DOMDocument60, NULL, CLSCTX_INPROC_SERVER, &IID_IXMLDOMDocument, (LPVOID *) &doc);
 	
 	
 	//IXMLDOMDocument_loadXML(doc, L"<root>aaabbb</root>", &loaded);	// load from string
-	IXMLDOMDocument_load(doc, varFileName, &isSuccessful);				// load from file
-
+	//IXMLDOMDocument_load(doc, varFileName, &isSuccessful);				// load from file
+	//doc->lpVtbl->loadXML(doc, L"<root>aaabbb</root>", &loaded);
+	doc->lpVtbl->load(doc, varFileName, &isSuccessful);
 	
-	IXMLDOMDocument_get_xml(doc, &xml);
-	wprintf(L"XML = %s\n", xml);
+	
+	//IXMLDOMDocument_get_xml(doc, &xml);
+	doc->lpVtbl->get_xml(doc, &xml);
 
+	wprintf(L"XML = %s\n", xml);
+	
 	
 
 	SysFreeString(xml);

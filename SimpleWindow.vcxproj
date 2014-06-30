@@ -28,6 +28,12 @@
       <SubType>
       </SubType>
       <FileType>Text</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="msxml-read-write-sample.c">
+      <SubType>
+      </SubType>
+      <FileType>Text</FileType>
     </ClCompile>
     <ClCompile Include="simplewindow.c">
       <FileType>Text</FileType>
@@ -117,7 +123,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Comctl32.lib;msxml6.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
