@@ -1,4 +1,3 @@
-#define COBJMACROS
 
 
 #include <stdio.h>
@@ -27,23 +26,15 @@ int main(){
 	varFileName.vt = VT_BSTR;
 	varFileName.bstrVal = bstr;
 
-	
 	CoInitialize(NULL);
+	CoCreateInstance(&CLSID_DOMDocument60, NULL, CLSCTX_INPROC_SERVER, &IID_IXMLDOMDocument, &doc);
 	
-	CoCreateInstance(&CLSID_DOMDocument60, NULL, CLSCTX_INPROC_SERVER, &IID_IXMLDOMDocument, (LPVOID *) &doc);
-	
-		
-	doc->lpVtbl->loadXML(doc, L"<root>aaa</root>", &loaded);		// load from string
+	doc->lpVtbl->loadXML(doc, L"<root>initial value</root>", &loaded);		// load from string
 	//doc->lpVtbl->load(doc, varFileName, &isSuccessful);			// load from file
-	
 	
 	doc->lpVtbl->get_xml(doc, &xml);
 
 	wprintf(L"XML = %s\n", xml);
-	
-	
-
-	
 
 	tag_name = SysAllocString(L"root");
 	doc->lpVtbl->getElementsByTagName(doc, tag_name, &resultList);
@@ -55,31 +46,17 @@ int main(){
 	resultList->lpVtbl->get_item(resultList, 0, &list_item);
 
 	
-	
 	list_item->lpVtbl->get_text(list_item, &tmp1_bstr);
+	wprintf(L"tmp1_bstr = %s\n", tmp1_bstr);
+	
 
-	tmp2_bstr = SysAllocString(L"I am a happy BSTR");
+	tmp2_bstr = SysAllocString(L"modified value");
 	list_item->lpVtbl->put_text(list_item, tmp2_bstr);
 	
+	list_item->lpVtbl->get_text(list_item, &tmp1_bstr);
+	wprintf(L"tmp1_bstr = %s\n", tmp1_bstr);
 
 	doc->lpVtbl->save(doc, varFileName);
-
-
-	// TODO
-	wprintf(L"tmp1_bstr = %s\n", tmp2_bstr);
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	SysFreeString(xml);
 	doc->lpVtbl->Release(doc);
