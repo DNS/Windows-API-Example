@@ -174,10 +174,6 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 void CenterWindow (HWND hwnd) {
 	RECT rc;
 	GetWindowRect(hwnd, &rc);
-	/*SetWindowPos(hwnd, 0,
-		(1366 - ),
-		500,
-		0, 0, SWP_NOZORDER | SWP_NOSIZE);*/
 	SetWindowPos(hwnd, 0,
 		(GetSystemMetrics(SM_CXSCREEN) - rc.right) / 2,
 		(GetSystemMetrics(SM_CYSCREEN) - rc.bottom) / 2,
