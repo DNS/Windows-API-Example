@@ -19,12 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="msxml-sample.c">
-      <SubType>
-      </SubType>
-      <FileType>Text</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="msxml-read-write-sample.c">
       <SubType>
       </SubType>

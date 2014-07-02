@@ -76,9 +76,6 @@ HTREEITEM AddItemToTree(HWND, LPCWSTR, int);
 void CenterWindow(HWND);
 
 WCHAR s_buf[500];
-
-
-
 COLORREF gColor = RGB(255, 255, 255);
 
 
@@ -122,7 +119,6 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 		WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_TABSTOP, 
 		0, 0, 800, 600, (HWND) NULL, (HMENU) NULL, hInstance, NULL);
 	
-
 	style = GetWindowLong(hwnd, GWL_STYLE);
 	//style = style & ~(WS_MINIMIZEBOX | WS_SYSMENU);
 	
@@ -1296,7 +1292,7 @@ HTREEITEM AddItemToTree (HWND hwndTV, LPCWSTR lpszItem, int nLevel) {
 	return hPrev;
 }
 
-void CenterWindow(HWND hwnd) {
+void CenterWindow (HWND hwnd) {
 	RECT rc;
 	GetWindowRect(hwnd, &rc);
 	/*SetWindowPos(hwnd, 0,

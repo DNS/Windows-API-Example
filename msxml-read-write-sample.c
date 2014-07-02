@@ -1,4 +1,14 @@
 
+/*
+COM explanation:
+	C	: IXMLDOMDocument_loadXML(xmlobject, BSTR bstrXML, VARIANT_BOOL * isSuccessful);
+		  // or
+		  xmlobject->lpVtbl->loadXML(xmlobject, BSTR bstrXML, VARIANT_BOOL * isSuccessful);
+
+	C++	: 
+		xmlobject->loadXML(BSTR bstrXML, VARIANT_BOOL * isSuccessful);
+*/
+
 
 #include <stdio.h>
 #include <windows.h>
@@ -70,12 +80,3 @@ int main(){
 	return 0;
 }
 
-/*
-COM explanation:
-	C	: IXMLDOMDocument_loadXML(xmlobject, BSTR bstrXML, VARIANT_BOOL * isSuccessful);
-		  // or
-		  xmlobject->lpVtbl->loadXML(xmlobject, BSTR bstrXML, VARIANT_BOOL * isSuccessful);
-
-	C++	: 
-		xmlobject->loadXML(BSTR bstrXML, VARIANT_BOOL * isSuccessful);
-*/

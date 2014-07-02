@@ -16,6 +16,7 @@
 //#include <exdisp.h>
 #include <wincodec.h>
 #include <wincodecsdk.h>
+#include <objidl.h>
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 	name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
@@ -32,6 +33,8 @@ HBITMAP hBitmap1;
 HWND staticimage1;
 
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
+
+void CenterWindow (HWND hwnd);
 
 IStream *CreateStreamOnResource (LPCTSTR lpName, LPCTSTR lpType);
 IWICBitmapSource *LoadBitmapFromStream (IStream *ipImageStream);
@@ -65,7 +68,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 
 	iccex.dwICC = ICC_WIN95_CLASSES | ICC_STANDARD_CLASSES;
 	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	//InitCommonControls();			// obsolete
+	//InitCommonControls();				// obsolete
 	InitCommonControlsEx(&iccex);
 
 	if (!RegisterClassExW(&wc)) {
@@ -74,19 +77,21 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	}
 	
 	// create main window
-	hwnd = CreateWindowExW(WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES | WS_EX_CONTROLPARENT, 
+	hwnd = CreateWindowExW(NULL, 
 		wc.lpszClassName, L"Title", 
-		WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_TABSTOP, 
-		0, 0, 800, 600, (HWND) NULL, (HMENU) NULL, hInstance, NULL);
+		WS_VISIBLE, 
+		0, 0, 636, 380, (HWND) NULL, (HMENU) NULL, hInstance, NULL);
 	
+	CenterWindow(hwnd);
 
-	//style = GetWindowLong(hwnd, GWL_STYLE);
-	//style = style & ~(WS_MINIMIZEBOX | WS_SYSMENU);
+	style = GetWindowLong(hwnd, GWL_STYLE);
+	style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
 	
-	//SetWindowLong(hwnd, GWL_STYLE, style);
-	
-	//ShowWindow(hwnd, nCmdShow);
-	//UpdateWindow(hwnd);
+	//SetWindowLong(hwnd, GWL_STYLE, style);	// obsolete
+	SetWindowLongPtr(hwnd, GWL_STYLE, style);
+
+	ShowWindow(hwnd, nCmdShow);
+	UpdateWindow(hwnd);
 
 	
 
@@ -108,7 +113,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	UINT state;
 	static HWND hwndPanel;
 	RECT rectParent;
-	WNDCLASSEX wc1 = {0}, wc2 = {0}, wc3 = {0};
+	//WNDCLASSEX wc1 = {0}, wc2 = {0}, wc3 = {0};
 
 
 	switch (msg) {
@@ -118,11 +123,12 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 				WS_CHILD | WS_VISIBLE | SS_BITMAP,
 				0, 0, 100, 100, hwnd, (HMENU) 9524, NULL, NULL);
 
+			
+
 			//hBitmap1 = LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
 			hBitmap1 = LoadSplashImage();
 			SendMessageW(staticimage1, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM) hBitmap1);
-			UpdateWindow(staticimage1);
-			UpdateWindow(hwnd);
+
 
 			break;
 		case WM_COMMAND:
@@ -149,7 +155,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			break;
 		case WM_CLOSE:
 			//EnumChildWindows(hwnd, DestroyChildWindow, lParam);
-			DestroyWindow(hwnd);
+			//DestroyWindow(hwnd);
 			break;
 		case WM_DESTROY:
 			//DeleteObject(hfont1);
@@ -164,12 +170,18 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 
-void load_image () {
-	IWICBitmapDecoder *wic_object;
-	CoInitialize(NULL);
-	CoCreateInstance(&CLSID_WICJpegDecoder, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, &wic_object);
 
-	CoUninitialize();
+void CenterWindow (HWND hwnd) {
+	RECT rc;
+	GetWindowRect(hwnd, &rc);
+	/*SetWindowPos(hwnd, 0,
+		(1366 - ),
+		500,
+		0, 0, SWP_NOZORDER | SWP_NOSIZE);*/
+	SetWindowPos(hwnd, 0,
+		(GetSystemMetrics(SM_CXSCREEN) - rc.right) / 2,
+		(GetSystemMetrics(SM_CYSCREEN) - rc.bottom) / 2,
+		0, 0, SWP_NOZORDER | SWP_NOSIZE);
 }
 
 
@@ -184,7 +196,6 @@ IStream *CreateStreamOnResource (LPCTSTR lpName, LPCTSTR lpType) {
 	LPVOID pvResourceData;
 
 	hrsrc = FindResource(NULL, lpName, lpType);
-	//MessageBoxA(NULL, "text", "caption", MB_OK);
 	
 	if (hrsrc == NULL)
 		goto Return;
@@ -283,7 +294,7 @@ HBITMAP CreateHBITMAP (IWICBitmapSource *ipBitmap) {
 
 	if (FAILED(ipBitmap->lpVtbl->GetSize(ipBitmap, &width, &height)) || width == 0 || height == 0)
 		goto Return;
- 
+	
 	// prepare structure giving bitmap information (negative height indicates a top-down DIB)
 	
 	ZeroMemory(&bminfo, sizeof(bminfo));
@@ -300,7 +311,7 @@ HBITMAP CreateHBITMAP (IWICBitmapSource *ipBitmap) {
 	ReleaseDC(NULL, hdcScreen);
 	if (hbmp == NULL)
 		goto Return;
- 
+	
 	// extract the image into the HBITMAP
 	cbStride = width * 4;
 	cbImage = cbStride * height;
@@ -308,7 +319,7 @@ HBITMAP CreateHBITMAP (IWICBitmapSource *ipBitmap) {
 		DeleteObject(hbmp);
 		hbmp = NULL;
 	}
- 
+	
 Return:
 	return hbmp;
 }
@@ -316,9 +327,10 @@ Return:
 HBITMAP LoadSplashImage () {
 	HBITMAP hbmpSplash = NULL;
 	IWICBitmapSource *ipBitmap;
-
-	// load the PNG image data into a stream
-	IStream *ipImageStream = CreateStreamOnResource(MAKEINTRESOURCE(IDI_SPLASHIMAGE), L"PNG");
+	IStream *ipImageStream;		// load the PNG image data into a stream
+	
+	CoInitialize(NULL);
+	ipImageStream = CreateStreamOnResource(MAKEINTRESOURCE(IDI_SPLASHIMAGE), L"PNG");
 	
 	if (ipImageStream == NULL)
 		goto Return;
@@ -336,8 +348,12 @@ ReleaseStream:
 	ipImageStream->lpVtbl->Release(ipImageStream);
 
 Return:
-    return hbmpSplash;
+	return hbmpSplash;
 }
+
+
+
+
 
 
 /*
