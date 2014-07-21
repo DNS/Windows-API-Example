@@ -27,6 +27,9 @@
     <ClCompile Include="splashscreen-wic.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="browser-embed.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">

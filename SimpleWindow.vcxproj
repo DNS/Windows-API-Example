@@ -19,6 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="browser-embed.c">
+      <SubType>
+      </SubType>
+      <FileType>Text</FileType>
+    </ClCompile>
     <ClCompile Include="msxml-read-write-sample.c">
       <SubType>
       </SubType>
@@ -40,7 +45,7 @@
       <SubType>
       </SubType>
       <FileType>Text</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

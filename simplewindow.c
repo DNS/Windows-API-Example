@@ -175,7 +175,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			
 			// STATUSCLASSNAME or "msctls_statusbar32"
 			ghSb = CreateWindowW(L"msctls_statusbar32", L"new Status bar title", 
-				WS_VISIBLE | WS_CHILD | WS_BORDER | SBARS_SIZEGRIP | CCS_BOTTOM,
+				WS_VISIBLE | WS_CHILD | WS_BORDER | SBARS_SIZEGRIP | CCS_BOTTOM, 
 				0, 0, 0, 0, hwnd, (HMENU) 5003, NULL, NULL );
 
 			ShowWindow(ghSb, SW_HIDE);

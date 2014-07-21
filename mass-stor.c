@@ -1,8 +1,4 @@
 
-/*
-	Enable & Disable USB Mass Storage
-	Copyright © by Daniel Sirait <dsirait@aol.com>
-*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +13,7 @@
 #define DISABLE_USBSTOR 0x00000004
 
 #ifndef NULL
-	#define NULL (void *) 0
+#define NULL (void *) 0
 #endif
 
 
