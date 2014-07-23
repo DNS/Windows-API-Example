@@ -31,9 +31,8 @@
 #define IDM_FILE_CONTROL 17
 #define IDM_FILE_CUSTOM 18
 #define IDM_HELP_ABOUT 21
+#define IDM_HYPERLINK1 31
 
-
-HFONT defaultFont;
 HWND ghSb;
 HMENU hMenubar1, hMenu1, hMenu2, submenu1, hMenubar2, hMenu2, hPopUp1;
 HINSTANCE ghInstance;
@@ -41,7 +40,7 @@ HWND ghwndEdit, staticimage1;
 HWND hEdit , hLabel, button1, button2, checkbox1, tabButton1;
 HWND radiobtn1, radiobtn2, radiobtn3;
 HWND hProgressBar, treeview1;
-HFONT hfont1, hfont2, hfont3;
+HFONT hfont1, hfont2, hfont3, hfont_link;
 HBITMAP hBitmap, kurtd3_bitmap;
 NONCLIENTMETRICS ncm;
 HWND hTrack;
@@ -51,6 +50,7 @@ HWND hMonthCal, hCombo, groupbox1;
 HWND hDlgCurrent = NULL;
 HWND hTab, listbox1;
 HWND rebar1, toolbar1;
+HWND hLink1;
 HANDLE hImg;
 HMODULE hmod;
 
@@ -203,7 +203,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			ghwndEdit = CreateWindowW(L"EDIT", L"abcd",
 				WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE | ES_WANTRETURN | WS_CLIPCHILDREN,
 				50, 50, 260, 180, hwnd, NULL, NULL, NULL);
-			
+
 			//SendMessageW(ghwndEdit, WM_SETFONT, (WPARAM) hfont1, TRUE);
 
 			/* // RICH EDIT CONTROL
@@ -605,16 +605,32 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			staticimage1 = CreateWindowW(L"STATIC", L"This is Label", 
 				WS_CHILD | WS_VISIBLE | SS_BITMAP,
 				560, 50, 100, 100, hwnd, (HMENU) 9524, NULL, NULL);
+
 			// LoadImage(): 0 -> actual resource size,  LR_DEFAULTSIZE -> fit to parent
 			kurtd3_bitmap = LoadImageW(NULL, L"kurtd3.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 			SendMessageW(staticimage1, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM) kurtd3_bitmap);
 
+
+			// HYPERLINK
+			hLink1 = CreateWindowW(L"STATIC", L"Hyperlink (Click Here)!", WS_VISIBLE | WS_CHILD | SS_NOTIFY, 
+				270, 350, 200, 13, hwnd, (HMENU) IDM_HYPERLINK1, NULL, NULL);
+
+
+			hfont_link = CreateFontW(13, 0, 0, 0, FW_DONTCARE, FALSE, 
+				TRUE, // underline
+				FALSE, ANSI_CHARSET, 
+				OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
+				DEFAULT_PITCH | FF_DONTCARE, L"Tahoma");
 			
-
+			SendMessageW(hLink1, WM_SETFONT, (WPARAM) hfont_link, TRUE);
+			
+			
 			break;
-
 		case WM_COMMAND:
 			switch (LOWORD(wParam)) {
+				case IDM_HYPERLINK1:
+					ShellExecuteW(NULL, L"open", L"https://ig-dhs.rhcloud.com/", NULL, NULL, SW_SHOWNORMAL);
+					break;
 				case 600:
 					SendMessageW(hEdit, WM_GETTEXT, 100, (LPARAM) s_buf);
 					SendMessageW(hLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
@@ -688,6 +704,20 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			}
 
 			break;
+		case WM_CTLCOLORSTATIC:
+			{
+				HDC hdc = (HDC) wParam;
+				HWND hwndCtl = (HWND) lParam;
+ 
+				BOOL fHyperlink = (NULL != GetProp(hwndCtl, PROP_STATIC_HYPERLINK));
+				if (fHyperlink) {
+					LRESULT lr = CallWindowProc(pfnOrigProc, hwnd, message, wParam, lParam);
+					SetTextColor(hdc, RGB(0, 0, 192));
+					return lr;
+				}
+ 
+				break;
+			}
 		case WM_ACTIVATE:
 			if (0 == wParam)		// becoming inactive
 				hDlgCurrent = NULL;
