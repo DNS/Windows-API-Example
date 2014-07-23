@@ -1,4 +1,9 @@
-
+/*
+	Name		: mass-stor.c
+	Author	: Daniel Sirait <dns@cpan.org>
+	License	: Public Domain
+	Description	: Enable/Disable USB mass storage
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
