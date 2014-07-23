@@ -22,18 +22,20 @@
 #pragma comment(lib, "Comctl32.lib")
 
 
-#define IDM_FILE_NEW 1
-#define IDM_FILE_OPEN 2
-#define IDM_FILE_QUIT 3
-#define IDM_VIEW_STB 4
-#define IDM_FILE_DIALOG 5
-#define IDM_FILE_COLOR 6
-#define IDM_FILE_CONTROL 7
-#define IDM_FILE_CUSTOM 8
+#define IDM_FILE_NEW 11
+#define IDM_FILE_OPEN 12
+#define IDM_FILE_QUIT 13
+#define IDM_VIEW_STB 14
+#define IDM_FILE_DIALOG 15
+#define IDM_FILE_COLOR 16
+#define IDM_FILE_CONTROL 17
+#define IDM_FILE_CUSTOM 18
+#define IDM_HELP_ABOUT 21
+
 
 HFONT defaultFont;
 HWND ghSb;
-HMENU hMenubar1, hMenu1, submenu1, hMenubar2, hMenu2, hPopUp1;
+HMENU hMenubar1, hMenu1, hMenu2, submenu1, hMenubar2, hMenu2, hPopUp1;
 HINSTANCE ghInstance;
 HWND ghwndEdit, staticimage1;
 HWND hEdit , hLabel, button1, button2, checkbox1, tabButton1;
@@ -63,7 +65,6 @@ BOOL CALLBACK DestroyChildWindow(HWND, LPARAM);
 void CreateDialogBox (HWND);
 void RegisterPanel ();
 COLORREF ShowColorDialog (HWND);
-void CreateMenubar (HWND);
 void OpenDialog (HWND);
 void LoadFile_internal (LPCWSTR);
 void CreateMyTooltip (HWND);
@@ -229,6 +230,9 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					Beep(50, 100);
 					MessageBoxA(NULL, "Clicked !", "IDM_FILE_NEW", MB_OK);
 					break;
+				case IDM_HELP_ABOUT:
+					ShellExecuteW(NULL, L"open", L"https://ig-dhs.rhcloud.com/", NULL, NULL, SW_SHOWNORMAL);
+					break;
 				case IDM_FILE_DIALOG:
 					memset(&wc3, 0, sizeof(wc3));
 					wc3.cbSize = sizeof(WNDCLASSEX);
@@ -371,6 +375,7 @@ void AddMenus (HWND hwnd) {
 	submenu1 = CreateMenu();
 	hMenubar1 = CreateMenu();
 	hMenu1 = CreateMenu();
+	hMenu2 = CreateMenu();
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_NEW, L"&New\tCtrl+N");
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_OPEN, L"&Open\tCtrl+C+O");
@@ -410,6 +415,10 @@ void AddMenus (HWND hwnd) {
 
 	
 	AppendMenuW(hMenubar1, MF_POPUP, (UINT_PTR) hMenu1, L"&File");
+
+	// Help Menu
+	AppendMenuW(hMenu2, MF_STRING, IDM_HELP_ABOUT, L"&About");
+	AppendMenuW(hMenubar1, MF_POPUP, (UINT_PTR) hMenu2, L"&Help");
 
 	
 	SetMenuItemBitmaps(hMenu1, IDM_FILE_OPEN, MF_BITMAP | MF_BYCOMMAND, hBitmap, hBitmap);
