@@ -31,7 +31,6 @@
 #define IDM_FILE_CONTROL 17
 #define IDM_FILE_CUSTOM 18
 #define IDM_HELP_ABOUT 21
-#define IDM_HYPERLINK1 31
 
 HWND ghSb;
 HMENU hMenubar1, hMenu1, hMenu2, submenu1, hMenubar2, hMenu2, hPopUp1;
@@ -231,7 +230,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					MessageBoxA(NULL, "Clicked !", "IDM_FILE_NEW", MB_OK);
 					break;
 				case IDM_HELP_ABOUT:
-					ShellExecuteW(NULL, L"open", L"https://ig-dhs.rhcloud.com/", NULL, NULL, SW_SHOWNORMAL);
+					ShellExecuteW(NULL, L"open", L"http://bitbucket.org/SiraitX", NULL, NULL, SW_SHOWNORMAL);
 					break;
 				case IDM_FILE_DIALOG:
 					memset(&wc3, 0, sizeof(wc3));
@@ -432,7 +431,6 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	HWND hwnd_parent;
 	UINT checked;
 	int ctrlID, requestID, position, tab_index;
-	LPNMHDR lpnmhdr;
 	SYSTEMTIME time;
 	int i = 0;
 	BOOL ret;
@@ -611,26 +609,28 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			SendMessageW(staticimage1, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM) kurtd3_bitmap);
 
 
-			// HYPERLINK
-			hLink1 = CreateWindowW(L"STATIC", L"Hyperlink (Click Here)!", WS_VISIBLE | WS_CHILD | SS_NOTIFY, 
-				270, 350, 200, 13, hwnd, (HMENU) IDM_HYPERLINK1, NULL, NULL);
+			// SysLink (hyperlink)
+			hLink1 = CreateWindowW(L"SysLink" , L"For more information <A HREF=\"http://bitbucket.org/SiraitX\">click here!</A>", WS_VISIBLE | WS_CHILD | WS_TABSTOP, 
+				270, 350, 180, 15, hwnd, NULL, NULL, NULL);
 
+			SendMessageW(hLink1, WM_SETFONT, (WPARAM) hfont2, TRUE);
 
-			hfont_link = CreateFontW(13, 0, 0, 0, FW_DONTCARE, FALSE, 
-				TRUE, // underline
-				FALSE, ANSI_CHARSET, 
-				OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
-				DEFAULT_PITCH | FF_DONTCARE, L"Tahoma");
-			
-			SendMessageW(hLink1, WM_SETFONT, (WPARAM) hfont_link, TRUE);
-			
+			//
+			//hLink1 = CreateWindowW(L"STATIC", L"Hyperlink (Click Here)!", WS_VISIBLE | WS_CHILD | SS_NOTIFY, 
+			//	270, 350, 200, 13, hwnd, (HMENU) IDM_HYPERLINK1, NULL, NULL);
+
+			//hfont_link = CreateFontW(13, 0, 0, 0, FW_DONTCARE, FALSE, 
+			//	TRUE, // underline
+			//	FALSE, ANSI_CHARSET, 
+			//	OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
+			//	DEFAULT_PITCH | FF_DONTCARE, L"Tahoma");
+			//
+			//SendMessageW(hLink1, WM_SETFONT, (WPARAM) hfont_link, TRUE);
+			//
 			
 			break;
 		case WM_COMMAND:
 			switch (LOWORD(wParam)) {
-				case IDM_HYPERLINK1:
-					ShellExecuteW(NULL, L"open", L"https://ig-dhs.rhcloud.com/", NULL, NULL, SW_SHOWNORMAL);
-					break;
 				case 600:
 					SendMessageW(hEdit, WM_GETTEXT, 100, (LPARAM) s_buf);
 					SendMessageW(hLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
@@ -706,7 +706,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_CTLCOLORSTATIC:
 			{
-				HDC hdc = (HDC) wParam;
+				/*HDC hdc = (HDC) wParam;
 				HWND hwndCtl = (HWND) lParam;
  
 				BOOL fHyperlink = (NULL != GetProp(hwndCtl, PROP_STATIC_HYPERLINK));
@@ -714,7 +714,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					LRESULT lr = CallWindowProc(pfnOrigProc, hwnd, message, wParam, lParam);
 					SetTextColor(hdc, RGB(0, 0, 192));
 					return lr;
-				}
+				}*/
  
 				break;
 			}
@@ -746,9 +746,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			
 			break;
 		case WM_NOTIFY:
-			lpnmhdr = (LPNMHDR) lParam;
-			
-			switch (lpnmhdr->code) {
+			switch ( ((LPNMHDR)lParam)->code ) {
 				case MCN_SELECT:
 					ZeroMemory(&time, sizeof(SYSTEMTIME));
 					SendMessageW(hMonthCal, MCM_GETCURSEL, 0, (LPARAM) &time);
@@ -758,13 +756,25 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					
 					SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 					break;
-                case TCN_SELCHANGE:
+				case TCN_SELCHANGE:
 					tab_index = SendMessageW(hTab, TCM_GETCURSEL, 0, 0);
 					if (tab_index == 0) {
 						ShowWindow(tabButton1, SW_SHOW);
 						BringWindowToTop(tabButton1);
 					} else ShowWindow(tabButton1, SW_HIDE);
 					break;
+				case NM_CLICK:		// msg from SysLink control, Fall through to the next case.
+				case NM_RETURN:		// handle mouse click & tabstop [ENTER]
+					{
+						PNMLINK pNMLink = (PNMLINK) lParam;
+						LITEM item = pNMLink->item;
+						if ((((LPNMHDR)lParam)->hwndFrom == hLink1) && (item.iLink == 0)) {
+							ShellExecuteW(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
+						} else if (wcscmp(item.szID, L"idInfo") == 0) {
+							MessageBoxW(NULL, L"This isn't much help.", L"Example", MB_OK);
+						}
+						break;
+					}
 			}
 			break;
 		case WM_PAINT:
@@ -786,7 +796,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			
 			break;
 		default: 
-            return DefWindowProc(hwnd, msg, wParam, lParam); 
+			return DefWindowProc(hwnd, msg, wParam, lParam); 
 	}
 	
 	
