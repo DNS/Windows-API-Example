@@ -82,13 +82,13 @@ COLORREF gColor = RGB(255, 255, 255);
 INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 	MSG msg;
 	HWND hwnd;
-	WNDCLASSEX wc;
+	WNDCLASSEX wc = {0};		// initialize with 0
 	INITCOMMONCONTROLSEX iccex;
 	ACCEL accel[2];
 	HACCEL hAccel;
 	LONG style;
 
-	//memset(&wc, 0, sizeof(wc));
+	ZeroMemory(&wc, sizeof(wc));
 	wc.cbSize = sizeof(WNDCLASSEXW);
 	wc.style = CS_HREDRAW | CS_VREDRAW;
 	wc.lpfnWndProc = WndProc;
@@ -161,7 +161,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	UINT state;
 	static HWND hwndPanel;
 	RECT rectParent;
-	WNDCLASSEX wc1 = {0}, wc2 = {0}, wc3 = {0};
+	WNDCLASSEX wc1 = {0}, wc2 = {0}, wc3 = {0};		// initialize with 0
 
 
 	switch (msg) {
@@ -233,7 +233,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					ShellExecuteW(NULL, L"open", L"http://bitbucket.org/SiraitX", NULL, NULL, SW_SHOWNORMAL);
 					break;
 				case IDM_FILE_DIALOG:
-					memset(&wc3, 0, sizeof(wc3));
+					ZeroMemory(&wc3, sizeof(wc3));
 					wc3.cbSize = sizeof(WNDCLASSEX);
 					wc3.lpfnWndProc = (WNDPROC) DialogProc;
 					wc3.hInstance = GetModuleHandleW(NULL);
@@ -250,7 +250,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					InvalidateRect(hwndPanel, NULL, TRUE);
 					break;
 				case IDM_FILE_CONTROL:
-					memset(&wc1, 0, sizeof(wc1));
+					ZeroMemory(&wc1, sizeof(wc1));
 					wc1.cbSize = sizeof(WNDCLASSEX);
 					wc1.lpfnWndProc = (WNDPROC) ControlProc;
 					wc1.hInstance = ghInstance;
@@ -262,14 +262,10 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 						L"Dialog Box", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 800, 550, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
 
-					
-
 					EnableWindow(hwnd, FALSE);	// make hwnd_tmp modal window
-
-
 					break;
 				case IDM_FILE_CUSTOM:
-					memset(&wc2, 0, sizeof(wc2));
+					ZeroMemory(&wc2, sizeof(wc2));
 					wc2.cbSize = sizeof(WNDCLASSEX);
 					wc2.lpfnWndProc = (WNDPROC) aaProc;
 					wc2.hInstance = ghInstance;
@@ -282,10 +278,6 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 						100, 100, 600, 400, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
 
 					EnableWindow(hwnd, FALSE);	// make hwnd_tmp modal window
-
-
-
-
 					break;
 				case IDM_FILE_OPEN:
 					OpenDialog(hwnd);
@@ -771,7 +763,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 						if ((((LPNMHDR)lParam)->hwndFrom == hLink1) && (item.iLink == 0)) {
 							ShellExecuteW(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
 						} else if (wcscmp(item.szID, L"idInfo") == 0) {
-							MessageBoxW(NULL, L"This isn't much help.", L"Example", MB_OK);
+							MessageBoxW(NULL, L"Can't open hyperlink", L"Error", MB_OK);
 						}
 						break;
 					}
