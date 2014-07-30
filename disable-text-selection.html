@@ -1,0 +1,29 @@
+
+<!-- Disable text selection on html page / protected ebook in html -->
+
+<style media="screen" type="text/css">
+
+
+*.unselectable {
+   -moz-user-select: none;
+   -khtml-user-select: none;
+   -webkit-user-select: none;
+
+   /*
+     Introduced in IE 10.
+     See http://ie.microsoft.com/testdrive/HTML5/msUserSelect/
+   */
+   -ms-user-select: none;
+   user-select: none;
+}
+
+</style>
+
+
+<div id="foo" unselectable="on" class="unselectable">
+test 1<br />
+test 2<br />
+test 3<br />
+<a href="#">test 4 (Hyperlink)</a><br />
+test 5<br />
+</div>
