@@ -5,8 +5,9 @@
 */
 
 
-/* force MSVC to use WideChar function, must be declared before #include <windows.h> */
+/* force MSVC to use WideChar function, must be before #include <windows.h> */
 #define UNICODE
+
 
 #include <stdio.h>
 #include <windows.h>
@@ -39,7 +40,7 @@ HWND ghwndEdit, staticimage1;
 HWND hEdit , hLabel, button1, button2, checkbox1, tabButton1;
 HWND radiobtn1, radiobtn2, radiobtn3;
 HWND hProgressBar, treeview1;
-HFONT hfont1, hfont2, hfont3, hfont_link;
+HFONT hfont1, hfont2, hfont3, hfont_custom;
 HBITMAP hBitmap, kurtd3_bitmap;
 NONCLIENTMETRICS ncm;
 HWND hTrack;
@@ -192,6 +193,10 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			hfont3 = CreateFontW(15, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET, 
 				OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
 				DEFAULT_PITCH | FF_DONTCARE, L"Comic Sans MS");
+
+			hfont_custom = CreateFontW(13, 0, 0, 0, FW_BOLD, TRUE, TRUE, FALSE, ANSI_CHARSET, 
+				OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
+				DEFAULT_PITCH | FF_DONTCARE, L"Tahoma");
 
 			// get system default font (default: Segoe UI 15)
 			ncm.cbSize = sizeof(NONCLIENTMETRICS);
@@ -607,18 +612,6 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			SendMessageW(hLink1, WM_SETFONT, (WPARAM) hfont2, TRUE);
 
-			//
-			//hLink1 = CreateWindowW(L"STATIC", L"Hyperlink (Click Here)!", WS_VISIBLE | WS_CHILD | SS_NOTIFY, 
-			//	270, 350, 200, 13, hwnd, (HMENU) IDM_HYPERLINK1, NULL, NULL);
-
-			//hfont_link = CreateFontW(13, 0, 0, 0, FW_DONTCARE, FALSE, 
-			//	TRUE, // underline
-			//	FALSE, ANSI_CHARSET, 
-			//	OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
-			//	DEFAULT_PITCH | FF_DONTCARE, L"Tahoma");
-			//
-			//SendMessageW(hLink1, WM_SETFONT, (WPARAM) hfont_link, TRUE);
-			//
 			
 			break;
 		case WM_COMMAND:
@@ -697,19 +690,16 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			break;
 		case WM_CTLCOLORSTATIC:
-			{
-				/*HDC hdc = (HDC) wParam;
-				HWND hwndCtl = (HWND) lParam;
- 
-				BOOL fHyperlink = (NULL != GetProp(hwndCtl, PROP_STATIC_HYPERLINK));
-				if (fHyperlink) {
-					LRESULT lr = CallWindowProc(pfnOrigProc, hwnd, message, wParam, lParam);
-					SetTextColor(hdc, RGB(0, 0, 192));
-					return lr;
-				}*/
- 
-				break;
+			if ((HWND)lParam == GetDlgItem(hwnd, 500)) {
+				// we're about to draw the static
+				// set the text colour in (HDC)lParam
+				SetBkMode((HDC) wParam, TRANSPARENT);			// change text background color
+				SetTextColor((HDC) wParam, RGB(255,0,255));		// change text color
+				SelectObject((HDC) wParam, hfont_custom);		// change font handle
+				return (BOOL) CreateSolidBrush(GetSysColor(COLOR_MENU));
 			}
+ 
+			break;		
 		case WM_ACTIVATE:
 			if (0 == wParam)		// becoming inactive
 				hDlgCurrent = NULL;
