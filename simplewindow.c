@@ -30,35 +30,33 @@
 #define IDM_FILE_DIALOG 15
 #define IDM_FILE_COLOR 16
 #define IDM_FILE_CONTROL 17
-#define IDM_FILE_CUSTOM 18
+#define IDM_FILE_ANTIALIASING 18
 #define IDM_HELP_ABOUT 21
+#define IDM_FILE_CHART_HISTOGRAM 5554
+#define IDM_FILE_CHART_BAR 5555
+#define IDM_FILE_CHART_LINE 5556
 
-HWND ghSb;
-HMENU hMenubar1, hMenu1, hMenu2, submenu1, hMenubar2, hMenu2, hPopUp1;
+HMENU hMenubar1, hMenu1, hMenu2, submenu1, hMenubar2, hMenu2, hPopUp1, chartmenu;
 HINSTANCE ghInstance;
 HWND ghwndEdit, staticimage1;
 HWND hEdit , hLabel, button1, button2, checkbox1, tabButton1;
-HWND radiobtn1, radiobtn2, radiobtn3;
-HWND hProgressBar, treeview1;
+HWND radiobtn1, radiobtn2, radiobtn3, hProgressBar, treeview1, hDebugLabel;
 HFONT hfont1, hfont2, hfont3, hfont_custom;
 HBITMAP hBitmap, kurtd3_bitmap;
 NONCLIENTMETRICS ncm;
-HWND hTrack;
 UINT hTrack_id;
-HWND hDebugLabel;
-HWND hMonthCal, hCombo, groupbox1;
+HWND ghSb, hTrack, hMonthCal, hCombo, groupbox1;
 HWND hDlgCurrent = NULL;
-HWND hTab, listbox1;
-HWND rebar1, toolbar1;
-HWND hLink1;
+HWND hTab, listbox1, rebar1, toolbar1, hLink1;
 HANDLE hImg;
 HMODULE hmod;
 
-
+INT WINAPI wWinMain (HINSTANCE, HINSTANCE, PWSTR, int);
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK ControlProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK aaProc (HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK histogramProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PanelProc (HWND, UINT, WPARAM, LPARAM);
 BOOL CALLBACK DestroyChildWindow(HWND, LPARAM);
 
@@ -269,7 +267,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 					EnableWindow(hwnd, FALSE);	// make hwnd_tmp modal window
 					break;
-				case IDM_FILE_CUSTOM:
+				case IDM_FILE_ANTIALIASING:
 					ZeroMemory(&wc2, sizeof(wc2));
 					wc2.cbSize = sizeof(WNDCLASSEX);
 					wc2.lpfnWndProc = (WNDPROC) aaProc;
@@ -299,6 +297,22 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 						ShowWindow(ghSb, SW_SHOWNA);
 						CheckMenuItem(hMenu1, IDM_VIEW_STB, MF_CHECKED);
 					}
+					break;
+				case IDM_FILE_CHART_HISTOGRAM:
+					ZeroMemory(&wc2, sizeof(wc2));
+					wc2.cbSize = sizeof(WNDCLASSEX);
+					wc2.lpfnWndProc = (WNDPROC) histogramProc;
+					wc2.hInstance = ghInstance;
+					wc2.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+					wc2.lpszClassName = L"HistogramWindowClass";
+					RegisterClassExW(&wc2);
+					
+					hwnd_aa = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT, L"HistogramWindowClass", 
+						L"Histogram Chart", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
+						100, 100, 600, 400, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
+
+					EnableWindow(hwnd, FALSE);	// make hwnd_tmp modal window
+
 					break;
 				case 300:
 					MessageBoxW(NULL, L"First Program", L"DEBUG", MB_OK);
@@ -366,9 +380,10 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 
 void AddMenus (HWND hwnd) {
-	MENUITEMINFO mii;
+	//MENUITEMINFO mii;
 
 	submenu1 = CreateMenu();
+	chartmenu = CreateMenu();
 	hMenubar1 = CreateMenu();
 	hMenu1 = CreateMenu();
 	hMenu2 = CreateMenu();
@@ -383,7 +398,11 @@ void AddMenus (HWND hwnd) {
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_COLOR, L"&Color");
 
 	AppendMenuW(submenu1, MF_STRING, 5553, L"&from AppendMenuW()\tCtrl+M");
+	AppendMenuW(chartmenu, MF_STRING, 5554, L"&Histogram Chart");
+	AppendMenuW(chartmenu, MF_STRING, 5555, L"&Bar Chart");
+	AppendMenuW(chartmenu, MF_STRING, 5556, L"&Line Chart");
 	
+	/*
 	mii.cbSize = sizeof(MENUITEMINFO);
 	mii.fMask = MIIM_STRING;
 	mii.fType = MFT_STRING | MFT_RIGHTJUSTIFY | MFT_RIGHTORDER;
@@ -398,13 +417,14 @@ void AddMenus (HWND hwnd) {
 	//mii.hbmpItem = ;
 
 	InsertMenuItemW(submenu1, 0, FALSE, &mii);	// TRUE to set this menu to 0 position index (first)
-
+	*/
 
 
 	AppendMenuW(hMenu1, MF_POPUP, (UINT_PTR) submenu1, L"&Submenu1");
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_CONTROL, L"Win32 Standard &Control");
-	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_CUSTOM, L"&Anti Aliasing");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_ANTIALIASING, L"&Anti Aliasing");
+	AppendMenuW(hMenu1, MF_POPUP, (UINT_PTR) chartmenu, L"&Charts");
 
 	AppendMenuW(hMenu1, MF_SEPARATOR, 0, NULL);
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_QUIT, L"&Quit");
@@ -927,6 +947,91 @@ LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			DeleteObject(holdPen2);
 			DeleteDC(hdc_tmp);
 			DeleteDC(hdc_aa);
+			DeleteDC(hdc);
+
+			break;
+		case WM_CLOSE:
+			
+			hwnd_parent = GetWindow(hwnd, GW_OWNER);
+			ret = EnableWindow(hwnd_parent, TRUE);
+			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"DEBUG", MB_OK);
+			
+			ShowWindow(hwnd_parent, SW_RESTORE);
+			ShowWindow(hwnd_parent, SW_SHOW);
+
+			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
+			DestroyWindow(hwnd);
+			break;
+		case WM_DESTROY:
+			
+			break;
+	}
+
+	return DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
+
+
+LRESULT CALLBACK histogramProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+	HWND hwnd_parent;
+	BOOL ret;
+	HDC hdc, hdc_tmp, hdc_aa;
+	PAINTSTRUCT ps, ps2;
+	//RECT r;
+	int i, j;
+	HPEN pen_solid1, pen_solid2, holdPen1, holdPen2;
+	RECT rc;
+	int ssaa_scale;
+	HBITMAP bmp;
+	HBITMAP bmp_tmp;
+	BITMAPINFO bi_aa = {0}, bi_tmp = {0};
+	LPCOLORREF pbits, pbits_tmp;
+	COLORREF cr;
+	COLORREF cr1, cr2, cr3, cr4;
+	BYTE red, green, blue;
+	int count;
+	HPEN hPen_solid, hPen_noborder;
+	HBRUSH hBrush_green;
+
+	switch (msg) {
+		case WM_CREATE:
+
+			//InvalidateRect(hwnd, NULL, FALSE);
+
+			break;
+		case WM_PAINT:
+			//GetClientRect(hwnd, &r);
+
+			hdc = BeginPaint(hwnd, &ps);
+			//ARRAYSIZE();
+			SetBkColor(hdc, GetSysColor(COLOR_BTNFACE));
+			SelectObject(hdc, hfont1);
+
+			TextOutW(hdc, 50, 20, L"test", 4);
+
+
+			hPen_solid = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+			SelectObject(hdc, hPen_solid);
+
+			MoveToEx(hdc, 100, 200, NULL);
+			LineTo(hdc, 250, 200);
+
+			MoveToEx(hdc, 100, 200, NULL);
+			LineTo(hdc, 100, 50);
+
+
+			// If a PS_NULL pen is used, the dimensions of the rectangle are 1 pixel less in height and 1 pixel less in width.
+			hPen_noborder = CreatePen(PS_NULL, 1, RGB(0, 0, 0));	// no border
+			hBrush_green = CreateSolidBrush(RGB(9, 189, 21));
+
+			SelectObject(hdc, hPen_noborder);
+			SelectObject(hdc, hBrush_green);
+
+			//Rectangle(hdc, 100+1, 50+1, 250+1, 200+1);
+			Rectangle(hdc, 120+1, 50+1, 150+1, 200+1);		
+			
+
+
 			DeleteDC(hdc);
 
 			break;
