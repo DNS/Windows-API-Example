@@ -2,8 +2,8 @@
 	Name        : splashscreen-wic.c
 	Author      : Daniel Sirait <dns@cpan.org>
 	License     : Public Domain
-	Description : Load splash screen (JPEG/PNG/GIF) using Win32 & WIC (Windows Imaging Component)
-	              via COM interface.
+	Description : Load splash screen (JPEG/PNG/GIF) using Win32 API & 
+				  WIC (Windows Imaging Component) via COM interface.
 */
 
 
@@ -113,17 +113,13 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	UINT state;
 	static HWND hwndPanel;
 	RECT rectParent;
-	//WNDCLASSEX wc1 = {0}, wc2 = {0}, wc3 = {0};
-
 
 	switch (msg) {
 		case WM_CREATE:
 
 			staticimage1 = CreateWindowW(L"STATIC", L"This is Label", 
-				WS_CHILD | WS_VISIBLE | SS_BITMAP,
+				WS_CHILD | WS_VISIBLE | SS_BITMAP, 
 				0, 0, 100, 100, hwnd, (HMENU) 9524, NULL, NULL);
-
-			
 
 			//hBitmap1 = LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
 			hBitmap1 = LoadSplashImage();

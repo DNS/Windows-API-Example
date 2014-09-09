@@ -9,11 +9,11 @@
 #define UNICODE
 
 
-#include <stdio.h>
+//#include <stdio.h>
 #include <windows.h>
 #include <commctrl.h>
 //#include <richedit.h>
-#include <exdisp.h>
+//#include <exdisp.h>
 
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
@@ -41,13 +41,14 @@ HINSTANCE ghInstance;
 HWND ghwndEdit, staticimage1;
 HWND hEdit , hLabel, button1, button2, checkbox1, tabButton1;
 HWND radiobtn1, radiobtn2, radiobtn3, hProgressBar, treeview1, hDebugLabel;
-HFONT hfont1, hfont2, hfont3, hfont_custom;
+HFONT hfont1, hfont2, hfont3, hfont_custom, hfont_hyperlink;
 HBITMAP hBitmap, kurtd3_bitmap;
 NONCLIENTMETRICS ncm;
 UINT hTrack_id;
 HWND ghSb, hTrack, hMonthCal, hCombo, groupbox1;
 HWND hDlgCurrent = NULL;
 HWND hTab, listbox1, rebar1, toolbar1, hLink1;
+HWND hlink_label;
 HANDLE hImg;
 HMODULE hmod;
 
@@ -195,6 +196,12 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			hfont_custom = CreateFontW(13, 0, 0, 0, FW_BOLD, TRUE, TRUE, FALSE, ANSI_CHARSET, 
 				OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
 				DEFAULT_PITCH | FF_DONTCARE, L"Tahoma");
+
+			hfont_hyperlink = CreateFontW(13, 0, 0, 0, FW_BOLD, FALSE, TRUE, FALSE, ANSI_CHARSET, 
+				OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
+				DEFAULT_PITCH | FF_DONTCARE, L"Tahoma");
+
+
 
 			// get system default font (default: Segoe UI 15)
 			ncm.cbSize = sizeof(NONCLIENTMETRICS);
@@ -627,10 +634,17 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 
 			// SysLink (hyperlink)
-			hLink1 = CreateWindowW(L"SysLink" , L"For more information <A HREF=\"http://bitbucket.org/SiraitX\">click here!</A>", WS_VISIBLE | WS_CHILD | WS_TABSTOP, 
+			hLink1 = CreateWindowW(L"SysLink" , L"SysLink: <A HREF=\"http://bitbucket.org/SiraitX\">click here!</A>", WS_VISIBLE | WS_CHILD | WS_TABSTOP, 
 				270, 350, 180, 15, hwnd, NULL, NULL, NULL);
 
 			SendMessageW(hLink1, WM_SETFONT, (WPARAM) hfont2, TRUE);
+
+			// HyperLink using Static Control (Label)
+			hlink_label = CreateWindowW(L"STATIC", L"Static Control HyperLink (click Here)", 
+				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP | SS_NOTIFY, 
+				400, 400, 150, 13, hwnd, (HMENU) 1200, NULL, NULL);
+
+			SendMessageW(hlink_label, WM_SETFONT, (WPARAM) hfont1, TRUE);
 
 			
 			break;
@@ -669,14 +683,18 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					break;
 				case 3555:
 					i = SendMessageW(listbox1, LB_GETCURSEL, 0, 0);
-
-					SendMessageW(listbox1, LB_GETTEXT, i, (LPARAM) &s_buf);	// fetch from listbox1 Control (much better)
+					SendMessageW(listbox1, LB_GETTEXT, i, (LPARAM) &s_buf);		// fetch from listbox1 Control (much better)
 					//wcscpy(s_buf, os_other[i]);	// fetch from local sBuffer
-					
 					SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 					break;
+				/*case 1200:
+					ShellExecuteW(NULL, L"open", L"http://bitbucket.org/SiraitX", NULL, NULL, SW_SHOWNORMAL);
+					break;*/
 			}
 
+			if (HIWORD(wParam) == STN_CLICKED && LOWORD(wParam) == 1200) {
+				ShellExecuteW(NULL, L"open", L"http://bitbucket.org/SiraitX", NULL, NULL, SW_SHOWNORMAL);
+			}
 
 			// GroupBox-RadioButton msg
 			if (HIWORD(wParam) == BN_CLICKED) {
@@ -716,6 +734,11 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				SetBkMode((HDC) wParam, TRANSPARENT);			// change text background color
 				SetTextColor((HDC) wParam, RGB(255,0,255));		// change text color
 				SelectObject((HDC) wParam, hfont_custom);		// change font handle
+				return (BOOL) CreateSolidBrush(GetSysColor(COLOR_MENU));
+			} else if ((HWND)lParam == GetDlgItem(hwnd, 1200)) {
+				SetBkMode((HDC) wParam, TRANSPARENT);			// change text background color
+				SetTextColor((HDC) wParam, RGB(0,0,255));		// change text color
+				SelectObject((HDC) wParam, hfont_hyperlink);		// change font handle
 				return (BOOL) CreateSolidBrush(GetSysColor(COLOR_MENU));
 			}
  
@@ -1442,11 +1465,7 @@ void CenterWindow (HWND hwnd) {
 }
 
 
-void web_browser () {
-	IWebBrowser2 *browser;
-	IUnknown *iunknown;
 
-}
 
 
 
