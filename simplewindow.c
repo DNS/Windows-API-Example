@@ -13,9 +13,9 @@
 
 
 
-/* force MSVC to use WideChar function, must be before #include <windows.h> */
+/* force MSVC to use ANSI/WideChar function, must be before #include <windows.h> */
 #define UNICODE
-
+//#undef UNICODE
 
 //#include <stdio.h>
 #include <windows.h>
