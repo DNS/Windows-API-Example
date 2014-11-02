@@ -84,13 +84,13 @@ COLORREF gColor = RGB(255, 255, 255);
 INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 	MSG msg;
 	HWND hwnd;
-	WNDCLASSEX wc = {0};		// initialize with 0
+	WNDCLASSEX wc = {0};		// initialize with NULL / 0
 	INITCOMMONCONTROLSEX iccex;
 	ACCEL accel[2];
 	HACCEL hAccel;
 	LONG style;
 
-	ZeroMemory(&wc, sizeof(wc));
+	ZeroMemory(&wc, sizeof(wc));			// initialize with NULL (other alternative)
 	wc.cbSize = sizeof(WNDCLASSEXW);
 	wc.style = CS_HREDRAW | CS_VREDRAW;
 	wc.lpfnWndProc = WndProc;
@@ -129,17 +129,17 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	//ShowWindow(hwnd, nCmdShow);
 	//UpdateWindow(hwnd);
 
-	// Create Keyboard Accelerator/Shorcut
+	// Create Keyboard Accelerator/Shorcut, Ctrl+A, Ctrl+Alt+C
 	accel[0].fVirt = FCONTROL | FVIRTKEY;
 	accel[0].key = 'A';			// must be uppercase
 	accel[0].cmd = 9101;		// msg code to send to WM_COMMAND
-	accel[1].fVirt = FCONTROL | FVIRTKEY;
+	accel[1].fVirt = FCONTROL | FALT | FVIRTKEY;
 	accel[1].key = 'C';			// must be uppercase
 	accel[1].cmd = 9102;		// msg code to send to WM_COMMAND
 	hAccel = CreateAcceleratorTableW(accel, 2);
 	
 	while (GetMessageW(&msg, NULL, 0, 0) > 0) {		/* If no error is received... */
-		if (!IsDialogMessageW(hDlgCurrent, &msg)) {
+		if (!IsDialogMessageW(hDlgCurrent, &msg)) {				/* Disable keyboard shorcut when other window active  */
 			if (!TranslateAcceleratorW(hwnd, hAccel, &msg)) {	/* Handle Keyboard shortcut */
 				TranslateMessage(&msg);		/* Translate key codes to chars if present */
 				DispatchMessageW(&msg);		/* Send it to WndProc */
@@ -1407,7 +1407,7 @@ HTREEITEM AddItemToTree (HWND hwndTV, LPCWSTR lpszItem, int nLevel) {
 
 	tvi.mask = TVIF_TEXT | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_PARAM;
 
-	// Set the text of the item. 
+	// Set the text of the item.
 	tvi.pszText = lpszItem;
 	tvi.cchTextMax = sizeof(tvi.pszText) / sizeof(tvi.pszText[0]);
 
@@ -1418,7 +1418,7 @@ HTREEITEM AddItemToTree (HWND hwndTV, LPCWSTR lpszItem, int nLevel) {
 
 	// Save the heading level in the item's application-defined 
 	// data area. 
-	tvi.lParam = (LPARAM)nLevel;
+	tvi.lParam = (LPARAM) nLevel;
 	tvins.item = tvi;
 	tvins.hInsertAfter = hPrev;
 
