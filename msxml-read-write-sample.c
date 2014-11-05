@@ -43,7 +43,7 @@ int main(){
 	//doc->lpVtbl->load(doc, varFileName, &isSuccessful);			// load from file
 	
 	doc->lpVtbl->get_xml(doc, &xml);
-
+	
 	wprintf(L"XML = %s\n", xml);
 
 	tag_name = SysAllocString(L"root");
