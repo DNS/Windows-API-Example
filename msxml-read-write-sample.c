@@ -28,8 +28,6 @@ int main(){
 	IXMLDOMNodeList *resultList;
 	long list_length;
 	IXMLDOMNode *list_item;
-	VARIANT value, value_bstr;
-	BSTR tmp1_bstr, tmp2_bstr;
 
 	VariantInit(&varFileName);
 	bstr = SysAllocString(L"myData.xml");
@@ -41,10 +39,12 @@ int main(){
 	
 	doc->lpVtbl->loadXML(doc, L"<root>initial value</root>", &loaded);		// load from string
 	//doc->lpVtbl->load(doc, varFileName, &isSuccessful);			// load from file
+	//VariantClear(&varFileName);
 	
-	doc->lpVtbl->get_xml(doc, &xml);
 	
-	wprintf(L"XML = %s\n", xml);
+	doc->lpVtbl->get_xml(doc, &bstr);
+	
+	wprintf(L"XML = %s\n", bstr);
 
 	tag_name = SysAllocString(L"root");
 	doc->lpVtbl->getElementsByTagName(doc, tag_name, &resultList);
@@ -56,19 +56,19 @@ int main(){
 	resultList->lpVtbl->get_item(resultList, 0, &list_item);
 
 	
-	list_item->lpVtbl->get_text(list_item, &tmp1_bstr);
-	wprintf(L"tmp1_bstr = %s\n", tmp1_bstr);
+	list_item->lpVtbl->get_text(list_item, &bstr);
+	wprintf(L"bstr = %s\n", bstr);
 	
 
-	tmp2_bstr = SysAllocString(L"modified value");
-	list_item->lpVtbl->put_text(list_item, tmp2_bstr);
+	bstr = SysAllocString(L"modified value");
+	list_item->lpVtbl->put_text(list_item, bstr);
 	
-	list_item->lpVtbl->get_text(list_item, &tmp1_bstr);
-	wprintf(L"tmp1_bstr = %s\n", tmp1_bstr);
+	list_item->lpVtbl->get_text(list_item, &bstr);
+	wprintf(L"bstr = %s\n", bstr);
 
 	doc->lpVtbl->save(doc, varFileName);
 
-	SysFreeString(xml);
+	SysFreeString(bstr);
 	doc->lpVtbl->Release(doc);
 	CoUninitialize();
 

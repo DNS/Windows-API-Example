@@ -6,9 +6,9 @@
 
 INT WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
 	LPTSTR s;
-	s = GetCommandLine();
+	s = GetCommandLineA();
 
-	MessageBox(NULL, s, "DEBUG", MB_OK);
+	MessageBoxA(NULL, s, "DEBUG", MB_OK);
 
 
 

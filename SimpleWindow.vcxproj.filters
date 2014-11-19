@@ -29,6 +29,9 @@
     <ClCompile Include="test.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="redirect-stdout.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
