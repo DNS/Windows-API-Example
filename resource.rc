@@ -1,7 +1,3 @@
-
-// ICON with lowest ID value placed first to ensure application icon
-
-1 ICON "razor.ico"
-2 BITMAP "test123.bmp"
-3 PNG "babymetal-july-babymetal-2014-promo-636.png"
-
+1	ICON	"razor.ico"
+2	BITMAP	"test123.bmp"
+3	PNG		"babymetal-july-babymetal-2014-promo-636.png"

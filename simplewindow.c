@@ -41,7 +41,7 @@
 HMENU hMenubar1, hMenu1, hMenu2, submenu1, hMenubar2, hMenu2, hPopUp1, chartmenu;
 HINSTANCE ghInstance;
 HWND ghwndEdit, staticimage1;
-HWND hEdit , hLabel, button1, button2, checkbox1, tabButton1;
+HWND hEdit , hLabel, button1, button2, checkbox1, tabButton1, hDialogLabel;
 HWND radiobtn1, radiobtn2, radiobtn3, hProgressBar, treeview1, hDebugLabel;
 HFONT hfont1, hfont2, hfont3, hfont_custom, hfont_hyperlink;
 HBITMAP hBitmap, kurtd3_bitmap;
@@ -479,7 +479,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				20, 80, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
 
 			// WS_TABSTOP: The window is a control that can receive the keyboard focus when the user presses the TAB key. 
-			button1 = CreateWindowW(L"BUTTON", L"&Button", WS_VISIBLE | WS_CHILD | WS_TABSTOP,
+			button1 = CreateWindowW(L"BUTTON", L"Push &Button", WS_VISIBLE | WS_CHILD | WS_TABSTOP,
 				20, 50, 90, 25, hwnd, (HMENU) 600, NULL, NULL);
 			hImg = LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
 			SendMessageW(button1, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM) hImg);
@@ -626,7 +626,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			AddItemToTree(treeview1, L"child", 1);
 
 			// STATIC Image
-			staticimage1 = CreateWindowW(L"STATIC", L"This is Label", 
+			staticimage1 = CreateWindowW(L"STATIC", L"staticimage1", 
 				WS_CHILD | WS_VISIBLE | SS_BITMAP,
 				560, 50, 100, 100, hwnd, (HMENU) 9524, NULL, NULL);
 
@@ -689,13 +689,14 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					//wcscpy(s_buf, os_other[i]);	// fetch from local sBuffer
 					SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 					break;
-				/*case 1200:
-					ShellExecuteW(NULL, L"open", L"http://bitbucket.org/SiraitX", NULL, NULL, SW_SHOWNORMAL);
-					break;*/
 			}
 
-			if (HIWORD(wParam) == STN_CLICKED && LOWORD(wParam) == 1200) {
-				ShellExecuteW(NULL, L"open", L"http://bitbucket.org/SiraitX", NULL, NULL, SW_SHOWNORMAL);
+			if (HIWORD(wParam) == STN_CLICKED) {
+				switch(LOWORD(wParam)) {
+					case 1200:
+						ShellExecuteW(NULL, L"open", L"http://bitbucket.org/SiraitX", NULL, NULL, SW_SHOWNORMAL);
+						break;
+				}
 			}
 
 			// GroupBox-RadioButton msg
@@ -745,6 +746,23 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			}
  
 			break;		
+
+		case WM_CTLCOLORBTN:
+			{
+			if ((HWND)lParam == GetDlgItem(hwnd, 600)) 
+				SetTextColor((HDC) wParam, RGB(255,0,0));
+			
+			}
+			break;
+		case WM_DRAWITEM:
+			{
+			LPDRAWITEMSTRUCT pDIS = (LPDRAWITEMSTRUCT)lParam;
+			if (pDIS->hwndItem == GetDlgItem(hwnd, 600))
+			{
+				SetTextColor(pDIS->hDC, RGB(100, 0, 100));
+			}
+			}
+			break;
 		case WM_ACTIVATE:
 			if (0 == wParam)		// becoming inactive
 				hDlgCurrent = NULL;
@@ -774,6 +792,46 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			break;
 		case WM_NOTIFY:
 			switch ( ((LPNMHDR)lParam)->code ) {
+				case NM_CUSTOMDRAW:
+
+					// WM_CTLCOLORBTN won't work to set Button text color
+					// Buttons with the BS_PUSHBUTTON, BS_DEFPUSHBUTTON, or BS_PUSHLIKE styles do not use the returned brush. 
+					{
+						LPNMHDR nmhdr = (LPNMHDR)(lParam);
+
+						if (nmhdr->idFrom == 600 && nmhdr->code == NM_CUSTOMDRAW)
+						{
+							LPNMCUSTOMDRAW custDraw = (LPNMCUSTOMDRAW)(nmhdr);
+
+							if (custDraw->dwDrawStage == CDDS_PREPAINT)
+							{
+								const int textLength = GetWindowTextLength(custDraw->hdr.hwndFrom);
+
+								if (textLength > 0)
+								{
+									CHAR buttonText[100];
+									SIZE dimensions = {0};
+									int xPos, yPos;
+
+									GetWindowTextA(custDraw->hdr.hwndFrom, buttonText, textLength+1);
+									GetTextExtentPoint32A(custDraw->hdc, buttonText, textLength, &dimensions);
+                        
+									xPos = (custDraw->rc.right - dimensions.cx) / 2;
+									yPos = (custDraw->rc.bottom - dimensions.cy) / 2;
+
+									SetBkMode(custDraw->hdc, TRANSPARENT);
+									SetTextColor(custDraw->hdc, RGB(24, 27, 255));
+									TextOutA(custDraw->hdc, xPos, yPos, buttonText, textLength);
+                        
+									return CDRF_SKIPDEFAULT;
+								}
+							}
+
+							return CDRF_DODEFAULT;
+						}
+					}
+
+					break;
 				case MCN_SELECT:
 					ZeroMemory(&time, sizeof(SYSTEMTIME));
 					SendMessageW(hMonthCal, MCM_GETCURSEL, 0, (LPARAM) &time);
@@ -1089,7 +1147,7 @@ LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 	switch (msg) {
 		case WM_CREATE:
 			// default Height: Edit 21, Button 25, Static 13
-			hLabel = CreateWindowW(L"STATIC", L"This is Label", 
+			hDialogLabel = CreateWindowW(L"STATIC", L"This is Dialog", 
 				WS_CHILD | WS_VISIBLE | SS_LEFT, 
 				20, 120, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
 			
