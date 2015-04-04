@@ -121,10 +121,10 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 		WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_TABSTOP, 
 		0, 0, 800, 600, (HWND) NULL, (HMENU) NULL, hInstance, NULL);
 	
-	style = GetWindowLong(hwnd, GWL_STYLE);
-	//style = style & ~(WS_MINIMIZEBOX | WS_SYSMENU);
-	
-	SetWindowLong(hwnd, GWL_STYLE, style);
+	// override Style
+	/*style = GetWindowLong(hwnd, GWL_STYLE);
+	style = style & ~(WS_MINIMIZEBOX | WS_SYSMENU);
+	SetWindowLongPtrA(hwnd, GWL_STYLE, style);*/
 	
 	//ShowWindow(hwnd, nCmdShow);
 	//UpdateWindow(hwnd);
@@ -542,6 +542,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			SendMessageW(radiobtn2, BM_SETCHECK, BST_CHECKED, TRUE);		// set default value to radiobtn2
 
 			// ComboBox: CBS_DROPDOWN or CBS_DROPDOWNLIST, msg CB_SETCURSEL, CB_GETCURSEL
+			//  [Alt + Down] arrow key to display the list using keyboard
 			hCombo = CreateWindowW(L"COMBOBOX", NULL,
 				WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_HASSTRINGS | CBS_DROPDOWNLIST,
 				410, 20, 120, 110, hwnd, NULL, NULL, NULL);
@@ -1341,7 +1342,7 @@ void CreateTrackBar (HWND hwnd) {
 	SendMessageW(hTrack, TBM_SETRANGE,TRUE, MAKELONG(0, 100));
 	SendMessageW(hTrack, TBM_SETPAGESIZE, 0,10);
 	SendMessageW(hTrack, TBM_SETTICFREQ, 10, 0);
-	SendMessageW(hTrack, TBM_SETPOS, FALSE, 50);
+	SendMessageW(hTrack, TBM_SETPOS, TRUE, 50);
 	SendMessageW(hTrack, TBM_SETBUDDY, TRUE, (LPARAM) hLeftLabel);
 	SendMessageW(hTrack, TBM_SETBUDDY, FALSE, (LPARAM) hRightLabel);
 }
