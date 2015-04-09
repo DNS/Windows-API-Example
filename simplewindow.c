@@ -542,7 +542,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			SendMessageW(radiobtn2, BM_SETCHECK, BST_CHECKED, TRUE);		// set default value to radiobtn2
 
 			// ComboBox: CBS_DROPDOWN or CBS_DROPDOWNLIST, msg CB_SETCURSEL, CB_GETCURSEL
-			//  [Alt + Down] arrow key to display the list using keyboard
+			// [F4] or [Alt + Up/Down] arrow key to display the list using keyboard (use TAB STOP until focus)
 			hCombo = CreateWindowW(L"COMBOBOX", NULL,
 				WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_HASSTRINGS | CBS_DROPDOWNLIST,
 				410, 20, 120, 110, hwnd, NULL, NULL, NULL);
@@ -798,7 +798,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					// WM_CTLCOLORBTN won't work to set Button text color
 					// Buttons with the BS_PUSHBUTTON, BS_DEFPUSHBUTTON, or BS_PUSHLIKE styles do not use the returned brush. 
 					{
-						LPNMHDR nmhdr = (LPNMHDR)(lParam);
+						LPNMHDR nmhdr = (LPNMHDR) lParam;
 
 						if (nmhdr->idFrom == 600 && nmhdr->code == NM_CUSTOMDRAW)
 						{
