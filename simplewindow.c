@@ -723,11 +723,10 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				i = SendMessageW(hCombo, CB_GETCURSEL, 0, 0);
 				SendMessageW(hCombo, CB_GETLBTEXT, i, (LPARAM) s_buf);
 				
-				//SetWindowTextW(hDebugLabel, s_buf);			// fetch from hCombo (much better)
-				//SetWindowTextW(hDebugLabel, os_list[i]);		// fetch from local sBuffer
-				SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
+				//SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);			// fetch from hCombo (much better)
+				//SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) os_list[i]);	// fetch from local sBuffer
 				
-				SetFocus(hwnd);
+				SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 			}
 
 			break;
