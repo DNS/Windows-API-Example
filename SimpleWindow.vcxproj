@@ -69,9 +69,6 @@
     <Image Include="razor.ico" />
     <Image Include="test123.bmp" />
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="resource.h" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{963C798A-D1FC-4384-886A-FA77779CC9DC}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

@@ -545,7 +545,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			// [F4] or [Alt + Up/Down] arrow key to display the list using keyboard (use TAB STOP until focus)
 			hCombo = CreateWindowW(L"COMBOBOX", NULL,
 				WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_HASSTRINGS | CBS_DROPDOWNLIST,
-				410, 20, 120, 110, hwnd, NULL, NULL, NULL);
+				410, 20, 120, 110, hwnd, (HMENU) 7500, NULL, NULL);
 
 			SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM) L"MSDOS");
 			SendMessageW(hCombo, CB_ADDSTRING, 0, (LPARAM) L"Windows 98 SE");
@@ -638,7 +638,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			// SysLink (hyperlink)
 			hLink1 = CreateWindowW(L"SysLink" , L"SysLink: <A HREF=\"http://bitbucket.org/SiraitX\">click here!</A>", WS_VISIBLE | WS_CHILD | WS_TABSTOP, 
-				270, 350, 180, 15, hwnd, NULL, NULL, NULL);
+				270, 350, 180, 15, hwnd, (HMENU) 7600, NULL, NULL);
 
 			SendMessageW(hLink1, WM_SETFONT, (WPARAM) hfont2, TRUE);
 
@@ -685,12 +685,32 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					MessageBoxW(NULL, L"tabButton1 clicked", L"DEBUG", MB_OK);
 					break;
 				case 3555:
-					i = SendMessageW(listbox1, LB_GETCURSEL, 0, 0);
-					SendMessageW(listbox1, LB_GETTEXT, i, (LPARAM) &s_buf);		// fetch from listbox1 Control (much better)
-					//wcscpy(s_buf, os_other[i]);	// fetch from local sBuffer
-					SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
+					// ListBox msg
+					if (HIWORD(wParam) == LBN_SELCHANGE) {
+						i = SendMessageW(listbox1, LB_GETCURSEL, 0, 0);
+						SendMessageW(listbox1, LB_GETTEXT, i, (LPARAM)&s_buf);		// fetch from listbox1 Control (much better)
+						//wcscpy(s_buf, os_other[i]);	// fetch from local sBuffer
+						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM)s_buf);
+					}
 					break;
+				case 7500:
+					// ComboBox msg
+					if (HIWORD(wParam) == CBN_SELCHANGE) {
+						i = SendMessageW(hCombo, CB_GETCURSEL, 0, 0);
+						SendMessageW(hCombo, CB_GETLBTEXT, i, (LPARAM) s_buf);
+
+						//SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);			// fetch from hCombo (much better)
+						//SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) os_list[i]);	// fetch from local sBuffer
+
+						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
+					}
+					break;
+
 			}
+
+
+			
+			
 
 			if (HIWORD(wParam) == STN_CLICKED) {
 				switch(LOWORD(wParam)) {
@@ -718,18 +738,12 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				}
 			}
 
-			// ComboBox msg
-			if (HIWORD(wParam) == CBN_SELCHANGE) {
-				i = SendMessageW(hCombo, CB_GETCURSEL, 0, 0);
-				SendMessageW(hCombo, CB_GETLBTEXT, i, (LPARAM) s_buf);
-				
-				//SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);			// fetch from hCombo (much better)
-				//SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) os_list[i]);	// fetch from local sBuffer
-				
-				SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
-			}
+			
 
 			break;
+
+
+		
 		case WM_CTLCOLORSTATIC:
 			if ((HWND)lParam == GetDlgItem(hwnd, 500)) {
 				// we're about to draw the static
@@ -849,18 +863,25 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					} else ShowWindow(tabButton1, SW_HIDE);
 					break;
 				case NM_CLICK:		// msg from SysLink control, Fall through to the next case.
+					
 				case NM_RETURN:		// handle mouse click & tabstop [ENTER]
-					{
-						PNMLINK pNMLink = (PNMLINK) lParam;
-						LITEM item = pNMLink->item;
-						if ((((LPNMHDR)lParam)->hwndFrom == hLink1) && (item.iLink == 0)) {
-							ShellExecuteW(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
-						} else if (wcscmp(item.szID, L"idInfo") == 0) {
-							MessageBoxW(NULL, L"Can't open hyperlink", L"Error", MB_OK);
+					switch (((LPNMHDR)lParam)->idFrom) {
+						case 7600:
+						{
+							PNMLINK pNMLink = (PNMLINK) lParam;
+							LITEM item = pNMLink->item;
+							if ((((LPNMHDR)lParam)->hwndFrom == hLink1) && (item.iLink == 0)) {
+								ShellExecuteW(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
+							}
+							else if (wcscmp(item.szID, L"idInfo") == 0) {
+								MessageBoxW(NULL, L"Can't open hyperlink", L"Error", MB_OK);
+							}
+							break;
 						}
-						break;
 					}
+					break;
 			}
+
 			break;
 		case WM_PAINT:
 			break;
