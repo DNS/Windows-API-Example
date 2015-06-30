@@ -9,11 +9,8 @@
 
 #define UNICODE
 
-//#include <stdio.h>
 #include <windows.h>
 #include <commctrl.h>
-//#include <richedit.h>
-//#include <exdisp.h>
 #include <wincodec.h>
 #include <wincodecsdk.h>
 #include <objidl.h>

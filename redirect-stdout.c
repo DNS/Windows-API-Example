@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +14,7 @@ void main (int argc, const char **argv, const char **env) {
 
 	while (fgets(buf, sizeof(buf), ph))
 		puts(buf);
- 
+	
 	_pclose(ph);
 
 	system("pause");

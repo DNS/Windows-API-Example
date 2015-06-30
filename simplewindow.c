@@ -24,7 +24,6 @@
 //#include <exdisp.h>
 
 
-
 #define IDM_FILE_NEW 11
 #define IDM_FILE_OPEN 12
 #define IDM_FILE_QUIT 13
@@ -53,8 +52,9 @@ HWND hTab, listbox1, rebar1, toolbar1, hLink1;
 HWND hlink_label;
 HANDLE hImg;
 HMODULE hmod;
+HBRUSH hbrush_syscolor;
 
-INT WINAPI wWinMain (HINSTANCE, HINSTANCE, PWSTR, int);
+INT WINAPI wWinMain (HINSTANCE, HINSTANCE, PWSTR, INT);
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK ControlProc (HWND, UINT, WPARAM, LPARAM);
@@ -81,7 +81,7 @@ WCHAR s_buf[500];
 COLORREF gColor = RGB(255, 255, 255);
 
 
-INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
+INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, INT nCmdShow) {
 	MSG msg;
 	HWND hwnd;
 	WNDCLASSEX wc = {0};		// initialize with NULL / 0
@@ -151,7 +151,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 }
 
 
-BOOL CALLBACK DestroyChildWindow(HWND hwnd, LPARAM lParam) {
+BOOL CALLBACK DestroyChildWindow (HWND hwnd, LPARAM lParam) {
 	DestroyWindow(hwnd);
 	SendMessageW(hwnd, WM_DESTROY, 0, 0);
 	return TRUE;
@@ -163,7 +163,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	UINT state;
 	static HWND hwndPanel;
 	RECT rectParent;
-	WNDCLASSEX wc1 = {0}, wc2 = {0}, wc3 = {0};		// initialize with 0
+	WNDCLASSEX wc1 = {0}, wc2 = {0}, wc3 = {0};		// initialize with 0 / NULL
 
 
 	switch (msg) {
@@ -172,7 +172,8 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			hBitmap = (HBITMAP) LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 			AddMenus(hwnd);
 			
-			
+			hbrush_syscolor = CreateSolidBrush(GetSysColor(COLOR_MENU));
+
 			//ghSb = CreateStatusWindowW(WS_CHILD | WS_VISIBLE, L"Status bar title", hwnd, 5003);	// obsolete
 			
 			// STATUSCLASSNAME or "msctls_statusbar32"
@@ -270,7 +271,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					wc1.lpszClassName = L"ControlClass";
 					RegisterClassExW(&wc1);
 					
-					hwnd_control = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT, L"ControlClass", 
+					hwnd_control = CreateWindowExW(WS_EX_DLGMODALFRAME , L"ControlClass", 
 						L"Dialog Box", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 800, 550, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
 
@@ -285,7 +286,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					wc2.lpszClassName = L"CustomWindowClass";
 					RegisterClassExW(&wc2);
 					
-					hwnd_aa = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT, L"CustomWindowClass", 
+					hwnd_aa = CreateWindowExW(WS_EX_DLGMODALFRAME, L"CustomWindowClass", 
 						L"Anti Aliasing Example", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 600, 400, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
 
@@ -316,7 +317,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					wc2.lpszClassName = L"HistogramWindowClass";
 					RegisterClassExW(&wc2);
 					
-					hwnd_aa = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_CONTROLPARENT, L"HistogramWindowClass", 
+					hwnd_aa = CreateWindowExW(WS_EX_DLGMODALFRAME, L"HistogramWindowClass", 
 						L"Histogram Chart", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 600, 400, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
 
@@ -371,6 +372,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		case WM_CLOSE:
 			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
 			DestroyWindow(hwnd);
+			//DeleteObject(hbrush_syscolor);
 			break;
 		case WM_DESTROY:
 			DeleteObject(hfont1);
@@ -389,8 +391,6 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 
 void AddMenus (HWND hwnd) {
-	//MENUITEMINFO mii;
-
 	submenu1 = CreateMenu();
 	chartmenu = CreateMenu();
 	hMenubar1 = CreateMenu();
@@ -411,24 +411,6 @@ void AddMenus (HWND hwnd) {
 	AppendMenuW(chartmenu, MF_STRING, 5555, L"&Bar Chart");
 	AppendMenuW(chartmenu, MF_STRING, 5556, L"&Line Chart");
 	
-	/*
-	mii.cbSize = sizeof(MENUITEMINFO);
-	mii.fMask = MIIM_STRING;
-	mii.fType = MFT_STRING | MFT_RIGHTJUSTIFY | MFT_RIGHTORDER;
-	//mii.fState = ;
-	//mii.wID = 5553;
-	mii.hSubMenu = submenu1;
-	//mii.hbmpChecked = ;
-	//mii.hbmpUnchecked = ;
-	//mii.dwItemData = ;
-	mii.dwTypeData = L"from InsertMenuItemW()\tCtrl+Shit+I";
-	//mii.cch = ;
-	//mii.hbmpItem = ;
-
-	InsertMenuItemW(submenu1, 0, FALSE, &mii);	// TRUE to set this menu to 0 position index (first)
-	*/
-
-
 	AppendMenuW(hMenu1, MF_POPUP, (UINT_PTR) submenu1, L"&Submenu1");
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_CONTROL, L"Win32 Standard &Control");
@@ -454,6 +436,8 @@ void AddMenus (HWND hwnd) {
 
 
 LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+	// Declaring variable inside WndProc() & DialogProc() is a bad practice because the function
+	// will get called very often and slow down performance
 	HWND hwnd_parent;
 	UINT checked;
 	int ctrlID, requestID, position, tab_index;
@@ -463,8 +447,9 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	TCITEMW tabItem1, tabItem2, tabItem3, tabItem4, tabItem5;
 	WCHAR os_list[5][32] = {L"MSDOS", L"Windows 98 SE", L"Windows ME", L"Windows XP", L"Windows 7"};
 	WCHAR os_other[6][32] = {L"UNIX", L"Linux", L"BSD", L"Plan 9", L"Mac OS X", L"OS/2 WARP"};
-
+	
 	hwnd_parent = GetWindow(hwnd, GW_OWNER);
+	
 
 	//IsDialogMessageW(hwnd, (LPMSG) &msg);
 	switch (msg) {
@@ -472,10 +457,9 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			// window class
 			// macro: WC_STATIC, WC_BUTTON, WC_EDIT, WC_COMBOBOX, WC_SCROLLBAR, WC_LISTBOX
 			// value: "STATIC" "BUTTON" "EDIT" "COMBOBOX" "SCROLLBAR" "LISTBOX"
-
-			// default Height: Edit 21, Button 25, Static 13, CheckBox 17 
-			hLabel = CreateWindowW(L"STATIC", L"This is Label", 
-				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
+			
+			// default Height: Edit 21, Button 25, Static 13, CheckBox 17
+			hLabel = CreateWindowW(L"STATIC", L"This is Label", WS_CHILD | WS_VISIBLE | SS_LEFT, 
 				20, 80, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
 
 			// WS_TABSTOP: The window is a control that can receive the keyboard focus when the user presses the TAB key. 
@@ -494,7 +478,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			//CheckDlgButton(hwnd, 700, BST_CHECKED);	// same below
 			SendMessageW(checkbox1, BM_SETCHECK, BST_CHECKED, 0);
 
-			hDebugLabel = CreateWindowW(L"STATIC", L"Debug Label !!!", WS_VISIBLE | WS_CHILD, 
+			hDebugLabel = CreateWindowW(L"STATIC", L"Debug Label !!!", WS_VISIBLE | WS_CHILD | SS_LEFT, 
 				550, 20, 200, 13, hwnd, (HMENU) 3111, NULL, NULL);
 
 			// EDIT ctrl: max 32,767 bytes
@@ -688,9 +672,9 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					// ListBox msg
 					if (HIWORD(wParam) == LBN_SELCHANGE) {
 						i = SendMessageW(listbox1, LB_GETCURSEL, 0, 0);
-						SendMessageW(listbox1, LB_GETTEXT, i, (LPARAM)&s_buf);		// fetch from listbox1 Control (much better)
+						SendMessageW(listbox1, LB_GETTEXT, i, (LPARAM) &s_buf);		// fetch from listbox1 Control (much better)
 						//wcscpy(s_buf, os_other[i]);	// fetch from local sBuffer
-						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM)s_buf);
+						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 					}
 					break;
 				case 7500:
@@ -705,74 +689,61 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
 					}
 					break;
-
-			}
-
-
-			
-			
-
-			if (HIWORD(wParam) == STN_CLICKED) {
-				switch(LOWORD(wParam)) {
-					case 1200:
+				case 1200:
+					if (HIWORD(wParam) == STN_CLICKED)
 						ShellExecuteW(NULL, L"open", L"http://bitbucket.org/SiraitX", NULL, NULL, SW_SHOWNORMAL);
-						break;
-				}
+					break;
+				case 6001:
+					if (HIWORD(wParam) == BN_CLICKED) {
+						wcscpy(s_buf, L"blue clicked");
+						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
+					}
+                    break;
+				case 6002:
+					if (HIWORD(wParam) == BN_CLICKED) {
+						wcscpy(s_buf, L"yellow clicked");
+						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
+					}
+					break;
+				case 6003:
+					if (HIWORD(wParam) == BN_CLICKED) {
+						wcscpy(s_buf, L"orange clicked");
+						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
+					}
+					break;
 			}
 
-			// GroupBox-RadioButton msg
-			if (HIWORD(wParam) == BN_CLICKED) {
-				switch (LOWORD(wParam)) {
-					case 6001:
-						wcscpy(s_buf, L"blue");
-						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
-						break;
-					case 6002:
-						wcscpy(s_buf, L"yellow");
-						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
-						break;
-					case 6003:
-						wcscpy(s_buf, L"orange");
-						SendMessageW(hDebugLabel, WM_SETTEXT, 0, (LPARAM) s_buf);
-						break;
-				}
-			}
 
+			
 			
 
 			break;
 
-
+			
 		
 		case WM_CTLCOLORSTATIC:
 			if ((HWND)lParam == GetDlgItem(hwnd, 500)) {
 				// we're about to draw the static
 				// set the text colour in (HDC)lParam
-				SetBkMode((HDC) wParam, TRANSPARENT);			// change text background color
 				SetTextColor((HDC) wParam, RGB(255,0,255));		// change text color
 				SelectObject((HDC) wParam, hfont_custom);		// change font handle
-				return (BOOL) CreateSolidBrush(GetSysColor(COLOR_MENU));
 			} else if ((HWND)lParam == GetDlgItem(hwnd, 1200)) {
-				SetBkMode((HDC) wParam, TRANSPARENT);			// change text background color
 				SetTextColor((HDC) wParam, RGB(0,0,255));		// change text color
 				SelectObject((HDC) wParam, hfont_hyperlink);		// change font handle
-				return (BOOL) CreateSolidBrush(GetSysColor(COLOR_MENU));
 			}
- 
-			break;		
-
+			SetBkMode((HDC) wParam, TRANSPARENT);			// change text background color
+			return hbrush_syscolor;		// set background color using HBRUSH
+			break;
 		case WM_CTLCOLORBTN:
 			{
-			if ((HWND)lParam == GetDlgItem(hwnd, 600)) 
+			if ((HWND)lParam == GetDlgItem(hwnd, 600))
 				SetTextColor((HDC) wParam, RGB(255,0,0));
-			
 			}
 			break;
 		case WM_DRAWITEM:
 			{
 			LPDRAWITEMSTRUCT pDIS = (LPDRAWITEMSTRUCT)lParam;
-			if (pDIS->hwndItem == GetDlgItem(hwnd, 600))
-			{
+			if (pDIS->hwndItem == GetDlgItem(hwnd, 600)) {
 				SetTextColor(pDIS->hDC, RGB(100, 0, 100));
 			}
 			}
@@ -896,10 +867,8 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			DeleteObject(kurtd3_bitmap);
 			DeleteObject(hImg);
-			
-			break; 
+			break;
 		case WM_DESTROY:
-			
 			break;
 		default: 
 			return DefWindowProc(hwnd, msg, wParam, lParam); 
@@ -1058,6 +1027,8 @@ LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			
 			hwnd_parent = GetWindow(hwnd, GW_OWNER);
 			ret = EnableWindow(hwnd_parent, TRUE);
+			BringWindowToTop(hwnd_parent);		// show parent window
+
 			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"DEBUG", MB_OK);
 			
 			ShowWindow(hwnd_parent, SW_RESTORE);
@@ -1144,7 +1115,8 @@ LRESULT CALLBACK histogramProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 			hwnd_parent = GetWindow(hwnd, GW_OWNER);
 			ret = EnableWindow(hwnd_parent, TRUE);
 			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"DEBUG", MB_OK);
-			
+			BringWindowToTop(hwnd_parent);		// show parent window
+
 			ShowWindow(hwnd_parent, SW_RESTORE);
 			ShowWindow(hwnd_parent, SW_SHOW);
 
