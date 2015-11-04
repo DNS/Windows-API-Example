@@ -274,7 +274,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					wc1.cbSize = sizeof(WNDCLASSEX);
 					wc1.lpfnWndProc = (WNDPROC) ControlProc;
 					wc1.hInstance = ghInstance;
-					wc1.hbrBackground = COLOR_BTNTEXT;//GetSysColorBrush(COLOR_3DFACE);
+					wc1.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
 					wc1.lpszClassName = L"ControlClass";
 					RegisterClassExW(&wc1);
 					
