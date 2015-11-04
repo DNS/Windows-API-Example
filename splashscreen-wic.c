@@ -23,7 +23,7 @@
 #pragma comment(lib, "windowscodecs.lib")
 
 
-#define IDI_SPLASHIMAGE 3
+#define BABYMETAL_SPLASHIMAGE 4
 
 
 HBITMAP hBitmap1;
@@ -48,6 +48,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	HACCEL hAccel;
 	LONG style;
 
+	
 	//memset(&wc, 0, sizeof(wc));
 	wc.cbSize = sizeof(WNDCLASSEXW);
 	wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -57,8 +58,8 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	wc.hInstance = hInstance;
 	wc.lpszMenuName= NULL;
 	wc.lpszClassName = L"Window";
-	wc.hbrBackground = (HBRUSH) COLOR_WINDOW;	// default window color
-	//wc.hbrBackground = CreateSolidBrush(RGB(255, 0, 0));	// make something different
+	//wc.hbrBackground = (HBRUSH) GetStockObject(BLACK_BRUSH);	// default window color
+	wc.hbrBackground = CreateSolidBrush(RGB(0, 0, 0));	// make something different
 	wc.hCursor = LoadCursorW(NULL, IDC_ARROW);	// Note: LoadCursor() superseded by LoadImage()
 	wc.hIcon = (HICON) LoadImageW(NULL, L"razor.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
 	wc.hIconSm = (HICON) LoadImageW(NULL, L"razor.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
@@ -74,7 +75,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	}
 	
 	// create main window
-	hwnd = CreateWindowExW(NULL, 
+	hwnd = CreateWindowExW(WS_EX_LAYERED, 
 		wc.lpszClassName, L"Title", 
 		WS_VISIBLE, 
 		0, 0, 636, 380, (HWND) NULL, (HMENU) NULL, hInstance, NULL);
@@ -82,10 +83,12 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	CenterWindow(hwnd);
 
 	style = GetWindowLong(hwnd, GWL_STYLE);
-	style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+	//style &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
 	
 	//SetWindowLong(hwnd, GWL_STYLE, style);	// obsolete
-	SetWindowLongPtr(hwnd, GWL_STYLE, style);
+	//SetWindowLongPtr(hwnd, GWL_STYLE, style);
+
+	//SetLayeredWindowAttributes(hwnd, RGB(0,0,0), 0, LWA_COLORKEY);
 
 	ShowWindow(hwnd, nCmdShow);
 	UpdateWindow(hwnd);
@@ -102,6 +105,33 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 
 
 
+void PremultiplyBitmapAlpha (HDC hDC, HBITMAP hBmp) {
+	BITMAP bm = { 0 };
+	GetObject(hBmp, sizeof(bm), &bm);
+	BITMAPINFO *bmi = (BITMAPINFO*) _alloca(sizeof(BITMAPINFOHEADER) + (256 * sizeof(RGBQUAD)));
+	ZeroMemory(bmi, sizeof(BITMAPINFOHEADER) + (256 * sizeof(RGBQUAD)));
+	bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	BOOL bRes = GetDIBits(hDC, hBmp, 0, bm.bmHeight, NULL, bmi, DIB_RGB_COLORS);
+	if( !bRes || bmi->bmiHeader.biBitCount != 32 ) return;
+	LPBYTE pBitData = (LPBYTE) LocalAlloc(LPTR, bm.bmWidth * bm.bmHeight * sizeof(DWORD));
+	if( pBitData == NULL ) return;
+	LPBYTE pData = pBitData;
+	GetDIBits(hDC, hBmp, 0, bm.bmHeight, pData, bmi, DIB_RGB_COLORS);
+	for (int y = 0; y < bm.bmHeight; y++) {
+		for( int x = 0; x < bm.bmWidth; x++ ) {
+			/*pData[0] = (BYTE)((DWORD)pData[0] * pData[3] / 255);
+			pData[1] = (BYTE)((DWORD)pData[1] * pData[3] / 255);
+			pData[2] = (BYTE)((DWORD)pData[2] * pData[3] / 255);*/
+			pData[0] = (BYTE) 127;
+			pData[1] = (BYTE) 127;
+			pData[2] = (BYTE) 127;
+			pData += 4;
+		}
+	}
+	SetDIBits(hDC, hBmp, 0, bm.bmHeight, pBitData, bmi, DIB_RGB_COLORS);
+	LocalFree(pBitData);
+}
+
 
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -110,19 +140,48 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	UINT state;
 	static HWND hwndPanel;
 	RECT rectParent;
-
+	POINT ptOrigin = {0, 0};
+	SIZE sizeSplash = {636, 380};	// size of the image
+	BLENDFUNCTION blend = {0};
+	POINT ptZero = {0, 0};
+	//HMONITOR hmonPrimary = MonitorFromPoint(ptZero, MONITOR_DEFAULTTOPRIMARY);
+	//MONITORINFO monitorinfo = {0};
+	HDC hdcScreen;
+	HDC hdcMem;
+	HBITMAP hbmpOld;
+	HWND button1;
+	
 	switch (msg) {
 		case WM_CREATE:
+			
+			//hBitmap1 = LoadSplashImage();		// Load PNG file
+			hBitmap1 = LoadImageW(NULL, L"babymetal-july-babymetal-2014-promo-636-transparent.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_CREATEDIBSECTION);
+			
+			// Enhanched splash screen with alpha support
+			blend.BlendOp = AC_SRC_OVER;
+			blend.BlendFlags = 0;
+			blend.SourceConstantAlpha = 255;
+			blend.AlphaFormat = AC_SRC_ALPHA;	// 0, AC_SRC_ALPHA
 
-			staticimage1 = CreateWindowW(L"STATIC", L"This is Label", 
-				WS_CHILD | WS_VISIBLE | SS_BITMAP, 
-				0, 0, 100, 100, hwnd, (HMENU) 9524, NULL, NULL);
+			//monitorinfo.cbSize = sizeof(monitorinfo);
+			//GetMonitorInfo(hmonPrimary, &monitorinfo);
 
-			//hBitmap1 = LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
-			hBitmap1 = LoadSplashImage();
-			SendMessageW(staticimage1, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM) hBitmap1);
+			hdcScreen = GetDC(NULL);
+			hdcMem = CreateCompatibleDC(hdcScreen);
+			hbmpOld = SelectObject(hdcMem, hBitmap1);
 
+			//SetLayout(hdcScreen, LAYOUT_BITMAPORIENTATIONPRESERVED | LAYOUT_RTL);
+			//PremultiplyBitmapAlpha(hdcScreen, hBitmap1);
 
+			// TODO: how to get BMP height & width size?
+			UpdateLayeredWindow(hwnd, hdcScreen, &ptOrigin, &sizeSplash, hdcMem, &ptZero, 
+				RGB(0, 0, 0), &blend, ULW_ALPHA);
+
+			ReleaseDC(hwnd, hdcScreen);
+			DeleteDC(hdcMem);
+
+			button1 = CreateWindowW(L"BUTTON", L"Push Button", WS_VISIBLE | WS_CHILD,
+				20, 50, 90, 25, hwnd, (HMENU) 600, NULL, NULL);
 			break;
 		case WM_COMMAND:
 			switch(LOWORD(wParam)) {
@@ -130,21 +189,8 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			}	// switch(LOWORD(wParam))
 
 			break;
-		case WM_ACTIVATE:
-			break;
-		case WM_KEYDOWN:
-			break;
-		case WM_SIZE:
-			break;
-		case WM_SIZING:
-			break;
-		case WM_EXITSIZEMOVE:
-			break;
-		case WM_SETFOCUS:
-			break;
-		case WM_RBUTTONUP:
-			break;
-		case WM_LBUTTONDOWN:
+		case WM_PAINT:
+
 			break;
 		case WM_CLOSE:
 			//EnumChildWindows(hwnd, DestroyChildWindow, lParam);
@@ -235,7 +281,7 @@ IWICBitmapSource *LoadBitmapFromStream (IStream *ipImageStream) {
 	IWICBitmapSource *ipBitmap = NULL;
 	IWICBitmapDecoder *ipDecoder = NULL;
 	IWICBitmapFrameDecode *ipFrame = NULL;
-
+	
 	if (FAILED(CoCreateInstance(&CLSID_WICPngDecoder, NULL, CLSCTX_INPROC_SERVER, &IID_IWICBitmapDecoder, &ipDecoder)))
 		goto Return;
 
@@ -319,7 +365,7 @@ HBITMAP LoadSplashImage () {
 	IStream *ipImageStream;		// load the PNG image data into a stream
 	
 	CoInitialize(NULL);
-	ipImageStream = CreateStreamOnResource(MAKEINTRESOURCE(IDI_SPLASHIMAGE), L"PNG");
+	ipImageStream = CreateStreamOnResource(MAKEINTRESOURCE(BABYMETAL_SPLASHIMAGE), L"PNG");
 	
 	if (ipImageStream == NULL)
 		goto Return;

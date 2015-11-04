@@ -32,7 +32,10 @@
     <ClCompile Include="redirect-stdout.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="custom-button.cpp">
+    <ClCompile Include="custom-control.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="transparent-control.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,6 +59,9 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="MISC.TXT" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="MISC FUNCTION.TXT" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,6 @@
 /*
 	Name    : Win32 API samples (without resource file)
-	Author  : Daniel Sirait <dns@cpan.org>
+	Author  : Daniel Sirait <dsirait@outlook.com>
 	License : Public Domain
 */
 
@@ -8,9 +8,10 @@
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 	name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
 	processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+/* processorArchitecture value can be 'x86', 'amd64', or '*' */
 
 #pragma comment(lib, "Comctl32.lib")
-
+#pragma comment(lib, "Msimg32.lib")
 
 
 /* force MSVC to use ANSI/WideChar function, must be before #include <windows.h> */
@@ -20,7 +21,7 @@
 //#include <stdio.h>
 #include <windows.h>
 #include <commctrl.h>
-//#include <richedit.h>
+#include <richedit.h>
 //#include <exdisp.h>
 
 
@@ -42,7 +43,7 @@ HINSTANCE ghInstance;
 HWND ghwndEdit, staticimage1;
 HWND hEdit , hLabel, button1, button2, checkbox1, tabButton1, hDialogLabel;
 HWND radiobtn1, radiobtn2, radiobtn3, hProgressBar, treeview1, hDebugLabel;
-HFONT hfont1, hfont2, hfont3, hfont_custom, hfont_hyperlink;
+HFONT hfont1, hfont2, hfont3, hfont_custom, hfont_hyperlink, hfont_default;
 HBITMAP hBitmap, kurtd3_bitmap;
 NONCLIENTMETRICS ncm;
 UINT hTrack_id;
@@ -61,7 +62,8 @@ LRESULT CALLBACK ControlProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK aaProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK histogramProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PanelProc (HWND, UINT, WPARAM, LPARAM);
-BOOL CALLBACK DestroyChildWindow(HWND, LPARAM);
+BOOL CALLBACK DestroyChildWindow (HWND, LPARAM);
+VOID CALLBACK SetChildWindowFont (HWND, LPARAM);
 
 void CreateDialogBox (HWND);
 void RegisterPanel ();
@@ -70,12 +72,13 @@ void OpenDialog (HWND);
 void LoadFile_internal (LPCWSTR);
 void CreateMyTooltip (HWND);
 void CreateTrackBar (HWND);
-void UpdateTrackBar();
+void UpdateTrackBar ();
 void AddMenus (HWND);
 HWND BuildToolBar (HWND);
 HWND CreateRebar (HWND, HWND);
-HTREEITEM AddItemToTree(HWND, LPCWSTR, int);
-void CenterWindow(HWND);
+HTREEITEM AddItemToTree (HWND, LPCWSTR, int);
+void CenterWindow (HWND);
+
 
 WCHAR s_buf[500];
 COLORREF gColor = RGB(255, 255, 255);
@@ -99,7 +102,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	wc.hInstance = hInstance;
 	wc.lpszMenuName= NULL;
 	wc.lpszClassName = L"Window";
-	wc.hbrBackground = (HBRUSH) COLOR_WINDOW;	// default window color
+	wc.hbrBackground = (HBRUSH) COLOR_WINDOW;	// default window , COLOR_WINDOW
 	//wc.hbrBackground = CreateSolidBrush(RGB(255, 0, 0));	// make something different
 	wc.hCursor = LoadCursorW(NULL, IDC_ARROW);	// Note: LoadCursor() superseded by LoadImage()
 	wc.hIcon = (HICON) LoadImageW(NULL, L"razor.ico", IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
@@ -126,7 +129,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	style = style & ~(WS_MINIMIZEBOX | WS_SYSMENU);
 	SetWindowLongPtrA(hwnd, GWL_STYLE, style);*/
 	
-	//ShowWindow(hwnd, nCmdShow);
+	ShowWindow(hwnd, nCmdShow);
 	//UpdateWindow(hwnd);
 
 	// Create Keyboard Accelerator/Shorcut, Ctrl+A, Ctrl+Alt+C
@@ -136,8 +139,10 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	accel[1].fVirt = FCONTROL | FALT | FVIRTKEY;
 	accel[1].key = 'C';			// must be uppercase
 	accel[1].cmd = 9102;		// msg code to send to WM_COMMAND
+
 	hAccel = CreateAcceleratorTableW(accel, 2);
-	
+	//hAccel = LoadAcceleratorsW(hInstance, MAKEINTRESOURCEW(IDC_SHORTCUT));
+
 	while (GetMessageW(&msg, NULL, 0, 0) > 0) {		/* If no error is received... */
 		if (!IsDialogMessageW(hDlgCurrent, &msg)) {				/* Disable keyboard shorcut when other window active  */
 			if (!TranslateAcceleratorW(hwnd, hAccel, &msg)) {	/* Handle Keyboard shortcut */
@@ -153,7 +158,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 
 BOOL CALLBACK DestroyChildWindow (HWND hwnd, LPARAM lParam) {
 	DestroyWindow(hwnd);
-	SendMessageW(hwnd, WM_DESTROY, 0, 0);
+	//SendMessageW(hwnd, WM_DESTROY, 0, 0);
 	return TRUE;
 }
 
@@ -163,8 +168,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	UINT state;
 	static HWND hwndPanel;
 	RECT rectParent;
-	WNDCLASSEX wc1 = {0}, wc2 = {0}, wc3 = {0};		// initialize with 0 / NULL
-
+	WNDCLASSEX wc1 = {0}, wc2 = {0}, wc3 = {0};		// initialize with 0 / 
 
 	switch (msg) {
 		case WM_CREATE:
@@ -174,19 +178,18 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			
 			hbrush_syscolor = CreateSolidBrush(GetSysColor(COLOR_MENU));
 
-			//ghSb = CreateStatusWindowW(WS_CHILD | WS_VISIBLE, L"Status bar title", hwnd, 5003);	// obsolete
-			
+			//ghSb = CreateStatusWindowW(WS_CHILD | WS_VISIBLE, L"Status bar title", hwnd, 5003);	// obsolete function
 			// STATUSCLASSNAME or "msctls_statusbar32"
 			ghSb = CreateWindowW(L"msctls_statusbar32", L"new Status bar title", 
 				WS_VISIBLE | WS_CHILD | WS_BORDER | SBARS_SIZEGRIP | CCS_BOTTOM, 
-				0, 0, 0, 0, hwnd, (HMENU) 5003, NULL, NULL );
+				0, 0, 0, 0, hwnd, (HMENU) 5003, NULL, NULL);
 
-			ShowWindow(ghSb, SW_HIDE);
+			ShowWindow(ghSb, SW_SHOW);
 
 			BuildToolBar(hwnd);
 			CreateMyTooltip(hwnd);
 			
-			// Delphi: Tahoma 13, .NET: Microsoft Sans Serif 14, System Default: Segoe UI 15
+			// Win XP: Tahoma 13, .NET: Microsoft Sans Serif 14, Win 7: Segoe UI 15
 			// get custom font
 			hfont1 = CreateFontW(13, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET, 
 				OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
@@ -204,7 +207,11 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 				OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
 				DEFAULT_PITCH | FF_DONTCARE, L"Tahoma");
 
-
+			// get default font from system
+			// System font. By default, the system uses the system font to draw menus, dialog box controls, and text. 
+			// Windows 95/98 and Windows NT: The system font is MS Sans Serif. 
+			// Windows 2000/XP: The system font is Tahoma
+			hfont_default = GetStockObject(SYSTEM_FONT);
 
 			// get system default font (default: Segoe UI 15)
 			ncm.cbSize = sizeof(NONCLIENTMETRICS);
@@ -212,17 +219,17 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 			hfont2 = CreateFontIndirectW(&ncm.lfMessageFont);
 			
-			ghwndEdit = CreateWindowW(L"EDIT", L"abcd",
+			/*ghwndEdit = CreateWindowW(L"EDIT", L"abcd",
 				WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE | ES_WANTRETURN | WS_CLIPCHILDREN,
-				50, 50, 260, 180, hwnd, NULL, NULL, NULL);
+				50, 50, 260, 180, hwnd, NULL, NULL, NULL);*/
 
 			//SendMessageW(ghwndEdit, WM_SETFONT, (WPARAM) hfont1, TRUE);
 
-			/* // RICH EDIT CONTROL
-			LoadLibrary(TEXT("Msftedit.dll"));
+			 // RICH EDIT CONTROL
+			LoadLibraryW(L"Msftedit.dll");
 			ghwndEdit = CreateWindowW(MSFTEDIT_CLASS, NULL,
 				WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE |WS_HSCROLL | WS_VSCROLL |WS_BORDER | WS_TABSTOP ,
-				0, 0, 260, 180, hwnd, NULL, NULL, NULL);*/
+				50, 50, 260, 180, hwnd, NULL, NULL, NULL);
 
 			/*// Scintilla
 			hmod = LoadLibraryW(L"SciLexer.DLL");
@@ -267,15 +274,18 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					wc1.cbSize = sizeof(WNDCLASSEX);
 					wc1.lpfnWndProc = (WNDPROC) ControlProc;
 					wc1.hInstance = ghInstance;
-					wc1.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+					wc1.hbrBackground = COLOR_BTNTEXT;//GetSysColorBrush(COLOR_3DFACE);
 					wc1.lpszClassName = L"ControlClass";
 					RegisterClassExW(&wc1);
 					
-					hwnd_control = CreateWindowExW(WS_EX_DLGMODALFRAME , L"ControlClass", 
+					hwnd_control = CreateWindowExW(WS_EX_DLGMODALFRAME, L"ControlClass", 
 						L"Dialog Box", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 800, 550, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
-
+					
 					EnableWindow(hwnd, FALSE);	// make hwnd_tmp modal window
+
+					SendMessageW(hwnd_control, WM_SETFONT, (WPARAM) hfont3, TRUE);
+
 					break;
 				case IDM_FILE_ANTIALIASING:
 					ZeroMemory(&wc2, sizeof(wc2));
@@ -283,10 +293,10 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					wc2.lpfnWndProc = (WNDPROC) aaProc;
 					wc2.hInstance = ghInstance;
 					wc2.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
-					wc2.lpszClassName = L"CustomWindowClass";
+					wc2.lpszClassName = L"AntiAliasingClass";
 					RegisterClassExW(&wc2);
 					
-					hwnd_aa = CreateWindowExW(WS_EX_DLGMODALFRAME, L"CustomWindowClass", 
+					hwnd_aa = CreateWindowExW(WS_EX_DLGMODALFRAME, L"AntiAliasingClass", 
 						L"Anti Aliasing Example", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 600, 400, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
 
@@ -304,7 +314,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 						ShowWindow(ghSb, SW_HIDE);
 						CheckMenuItem(hMenu1, IDM_VIEW_STB, MF_UNCHECKED);
 					} else {
-						ShowWindow(ghSb, SW_SHOWNA);
+						ShowWindow(ghSb, SW_SHOW);
 						CheckMenuItem(hMenu1, IDM_VIEW_STB, MF_CHECKED);
 					}
 					break;
@@ -401,7 +411,7 @@ void AddMenus (HWND hwnd) {
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_OPEN, L"&Open\tCtrl+C+O");
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_VIEW_STB, L"&Statusbar");
-	CheckMenuItem(hMenu1, IDM_VIEW_STB, MF_UNCHECKED);	// MF_CHECKED, MF_UNCHECKED
+	CheckMenuItem(hMenu1, IDM_VIEW_STB, MF_CHECKED);	// MF_CHECKED, MF_UNCHECKED
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_DIALOG, L"&Dialog, ToolBar, && Rebar");
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_COLOR, L"&Color");
@@ -435,6 +445,30 @@ void AddMenus (HWND hwnd) {
 }
 
 
+void PremultiplyBitmapAlpha (HDC hDC, HBITMAP hBmp) {
+	BITMAP bm = { 0 };
+	GetObject(hBmp, sizeof(bm), &bm);
+	BITMAPINFO *bmi = (BITMAPINFO*) _alloca(sizeof(BITMAPINFOHEADER) + (256 * sizeof(RGBQUAD)));
+	ZeroMemory(bmi, sizeof(BITMAPINFOHEADER) + (256 * sizeof(RGBQUAD)));
+	bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	BOOL bRes = GetDIBits(hDC, hBmp, 0, bm.bmHeight, NULL, bmi, DIB_RGB_COLORS);
+	if( !bRes || bmi->bmiHeader.biBitCount != 32 ) return;
+	LPBYTE pBitData = (LPBYTE) LocalAlloc(LPTR, bm.bmWidth * bm.bmHeight * sizeof(DWORD));
+	if( pBitData == NULL ) return;
+	LPBYTE pData = pBitData;
+	GetDIBits(hDC, hBmp, 0, bm.bmHeight, pData, bmi, DIB_RGB_COLORS);
+	for (int y = 0; y < bm.bmHeight; y++) {
+		for( int x = 0; x < bm.bmWidth; x++ ) {
+			pData[0] = (BYTE)((DWORD)pData[0] * pData[3] / 255);
+			pData[1] = (BYTE)((DWORD)pData[1] * pData[3] / 255);
+			pData[2] = (BYTE)((DWORD)pData[2] * pData[3] / 255);
+			pData += 4;
+		}
+	}
+	SetDIBits(hDC, hBmp, 0, bm.bmHeight, pBitData, bmi, DIB_RGB_COLORS);
+	LocalFree(pBitData);
+}
+
 LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	// Declaring variable inside WndProc() & DialogProc() is a bad practice because the function
 	// will get called very often and slow down performance
@@ -453,6 +487,8 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	//IsDialogMessageW(hwnd, (LPMSG) &msg);
 	switch (msg) {
+		case WM_INITDIALOG:
+			break;
 		case WM_CREATE:
 			// window class
 			// macro: WC_STATIC, WC_BUTTON, WC_EDIT, WC_COMBOBOX, WC_SCROLLBAR, WC_LISTBOX
@@ -581,6 +617,8 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			SendMessageW(hTab, TCM_INSERTITEM, 3, (LPARAM) &tabItem4);
 			SendMessageW(hTab, TCM_INSERTITEM, 4, (LPARAM) &tabItem5);
 
+			SendMessageW(hTab, TCM_SETCURSEL, 0, 0);	// Selects a tab in a tab control
+			 
 			tabButton1 = CreateWindowW(L"BUTTON", L"Tab Button", WS_CHILD | WS_VISIBLE, 
 				430, 140, 90, 30, hwnd, (HMENU) 3444, NULL, NULL);
 
@@ -600,6 +638,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			// set font
 			SendMessageW(hTab, WM_SETFONT, (WPARAM) hfont1, TRUE);
+			//SendMessageW(tabButton1, WM_SETFONT, (WPARAM) hfont1, TRUE);
 			SendMessageW(listbox1, WM_SETFONT, (WPARAM) hfont1, TRUE);
 
 			// WC_TREEVIEW or "SysTreeView32"
@@ -613,12 +652,33 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			// STATIC Image
 			staticimage1 = CreateWindowW(L"STATIC", L"staticimage1", 
 				WS_CHILD | WS_VISIBLE | SS_BITMAP,
-				560, 50, 100, 100, hwnd, (HMENU) 9524, NULL, NULL);
+				560, 50, 0, 0, hwnd, (HMENU) 9524, NULL, NULL);
+
+
+			
 
 			// LoadImage(): 0 -> actual resource size,  LR_DEFAULTSIZE -> fit to parent
-			kurtd3_bitmap = LoadImageW(NULL, L"kurtd3.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-			SendMessageW(staticimage1, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM) kurtd3_bitmap);
+			kurtd3_bitmap = LoadImageW(NULL, L"babymetal-july-babymetal-2014-promo-636-transparent.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 
+			/*HDC hdc = GetDC(kurtd3_bitmap);
+			HDC hdcMem = CreateCompatibleDC(hdc);
+			BLENDFUNCTION fn;
+
+			ZeroMemory(&fn, sizeof(fn));
+			fn.BlendOp = AC_SRC_OVER;
+			fn.BlendFlags = 0;
+			fn.SourceConstantAlpha = 127;
+			fn.AlphaFormat = AC_SRC_ALPHA;
+
+			PremultiplyBitmapAlpha(hdc, kurtd3_bitmap);
+
+			AlphaBlend(hdc, 0, 0, 636, 380, hdcMem, 0, 0, 636, 380, fn);*/
+
+
+
+			
+			SendMessageW(staticimage1, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM) kurtd3_bitmap);
+			
 
 			// SysLink (hyperlink)
 			hLink1 = CreateWindowW(L"SysLink" , L"SysLink: <A HREF=\"http://bitbucket.org/SiraitX\">click here!</A>", WS_VISIBLE | WS_CHILD | WS_TABSTOP, 
@@ -634,6 +694,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			SendMessageW(hlink_label, WM_SETFONT, (WPARAM) hfont1, TRUE);
 
 			
+
 			break;
 		case WM_COMMAND:
 			switch (LOWORD(wParam)) {
@@ -757,6 +818,8 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		case WM_SETFOCUS:
 			break;
 		case WM_SETFONT:
+			// set all child control to use specific font
+			EnumChildWindows(hwnd, SetChildWindowFont, lParam);
 			break;
 		case WM_TIMER:
 			SendMessageW(hProgressBar, PBM_STEPIT, 0, 0);
@@ -880,13 +943,95 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 }
 
 
+VOID CALLBACK SetChildWindowFont (HWND hwnd, LPARAM lParam) {
+	SendMessageW(hwnd, WM_SETFONT, (WPARAM) hfont3, TRUE);
+}
+
+
+//double cubicInterpolate (double p[4], double x) {
+//	return p[1] + 0.5 * x*(p[2] - p[0] + x*(2.0*p[0] - 5.0*p[1] + 4.0*p[2] - p[3] + x*(3.0*(p[1] - p[2]) + p[3] - p[0])));
+//}
+//
+//double bicubicInterpolate (double p[4][4], double x, double y) {
+//	double arr[4];
+//	arr[0] = cubicInterpolate(p[0], y);
+//	arr[1] = cubicInterpolate(p[1], y);
+//	arr[2] = cubicInterpolate(p[2], y);
+//	arr[3] = cubicInterpolate(p[3], y);
+//	return cubicInterpolate(arr, x);
+//}
+
+
+
+
+BYTE BicubicInterpolation (BYTE p[4][4]) {
+	FLOAT x1, x2, x3;
+	UINT32 x;
+	x1 = (p[1][1] + p[1][2] + p[2][1] + p[2][2]) / 4;
+	x2 = (p[0][0] + p[0][3] + p[3][0] + p[3][3]) / 4;
+	x3 = (p[0][1] + p[0][2] + p[1][0] + p[1][3] + p[2][0] + p[2][3] + p[3][1] + p[3][2]) / 8;
+	x = (x1 + (x2 * (4.f/6.f)) + x3 * (2.f/6.f));
+	return x;
+}
+
+BYTE ChangeEndianness (BYTE value) {
+    BYTE result = 0;
+    result |= (value & 0x000000FF) << 24;
+    result |= (value & 0x0000FF00) << 8;
+    result |= (value & 0x00FF0000) >> 8;
+    result |= (value & 0xFF000000) >> 24;
+    return result;
+}
+
+void paintRect (HDC hdc) {
+	RECT dim = {0,0,200,200};
+        HDC tempHdc = CreateCompatibleDC(hdc);
+        BLENDFUNCTION blend;
+		blend.BlendOp = AC_SRC_OVER;
+		blend.BlendFlags = 0;
+		blend.SourceConstantAlpha = 127;	// half transparent
+		blend.AlphaFormat = AC_SRC_ALPHA;	// 0, AC_SRC_ALPHA
+
+        HBITMAP hbitmap;       // bitmap handle 
+        BITMAPINFO bmi;        // bitmap header 
+        // zero the memory for the bitmap info 
+        ZeroMemory(&bmi, sizeof(BITMAPINFO));
+
+        // setup bitmap info  
+        // set the bitmap width and height to 60% of the width and height of each of the three horizontal areas. Later on, the blending will occur in the center of each of the three areas. 
+        bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bmi.bmiHeader.biWidth = dim.right-dim.left;
+        bmi.bmiHeader.biHeight = -(dim.bottom-dim.top);
+        bmi.bmiHeader.biPlanes = 1;
+        bmi.bmiHeader.biBitCount = 32;         // four 8-bit components 
+        bmi.bmiHeader.biCompression = BI_RGB;
+        bmi.bmiHeader.biSizeImage = (dim.right-dim.left) * (dim.bottom-dim.top) * 4;
+
+        // create our DIB section and select the bitmap into the dc 
+        hbitmap = LoadImageW(NULL, L"123.bmp", IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION | LR_LOADFROMFILE);;//CreateDIBSection(tempHdc, &bmi, DIB_RGB_COLORS, NULL, NULL, 0x0);
+        //SelectObject(tempHdc, hbitmap);
+		//PremultiplyBitmapAlpha (tempHdc, hbitmap);
+		//BitBlt(hdc, 0, 0, 200, 200, tempHdc, 0, 0, SRCCOPY);
+
+
+        /*SetDCPenColor(tempHdc, RGB(0,0,255));
+        SetDCBrushColor(tempHdc, RGB(0,0,255));
+        FillRect(tempHdc, &dim, CreateSolidBrush(RGB(0,0,255)));
+		*/
+		//PremultiplyBitmapAlpha (tempHdc, hbitmap);
+       AlphaBlend(hdc, dim.left, dim.top, dim.right, dim.bottom, tempHdc, dim.left, dim.top, dim.right, dim.bottom, blend); 
+
+
+}
+
+/* Anti Aliasing procedure */
 LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	HWND hwnd_parent;
 	BOOL ret;
 	HDC hdc, hdc_tmp, hdc_aa;
 	PAINTSTRUCT ps, ps2;
 	//RECT r;
-	int i, j;
+	int i, j, k;
 	HPEN pen_solid1, pen_solid2, holdPen1, holdPen2;
 	RECT rc;
 	int ssaa_scale;
@@ -899,6 +1044,7 @@ LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	COLORREF cr1, cr2, cr3, cr4;
 	BYTE red, green, blue;
 	int count;
+	RGBQUAD *b,*c;
 
 	switch (msg) {
 		case WM_CREATE:
@@ -919,94 +1065,112 @@ LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			
 			// draw line & super sample anti aliasing
 			ssaa_scale = 2;
-
+			ZeroMemory(&bi_tmp, sizeof(BITMAPINFOHEADER));
 			bi_tmp.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 			bi_tmp.bmiHeader.biWidth = 200*ssaa_scale;
-			bi_tmp.bmiHeader.biHeight = 200*ssaa_scale;
+			bi_tmp.bmiHeader.biHeight = -200*ssaa_scale;	// (-): top-bottom, (+): bottom-top
 			bi_tmp.bmiHeader.biPlanes = 1;
 			bi_tmp.bmiHeader.biBitCount = 32;
+			bi_tmp.bmiHeader.biClrUsed = 0;
+			bi_tmp.bmiHeader.biClrImportant = 0;
 			bi_tmp.bmiHeader.biCompression = BI_RGB;
 
+
 			hdc_tmp = CreateCompatibleDC(NULL);
-			pen_solid1 = CreatePen(PS_SOLID, ssaa_scale, RGB(0, 0, 0));
-			holdPen1 = SelectObject(hdc_tmp, pen_solid1);
+			pen_solid1 = CreatePen(PS_SOLID, 1*ssaa_scale, RGB(0, 0, 0));
+			SelectObject(hdc_tmp, pen_solid1);
+			
+			
 			//bmp_tmp = CreateCompatibleBitmap(hdc, 200*ssaa_scale, 200*ssaa_scale);
 			bmp_tmp = CreateDIBSection(NULL, &bi_tmp, DIB_RGB_COLORS, &pbits_tmp, NULL, 0);
 			SelectObject(hdc_tmp, bmp_tmp);
-			
+
 			rc.left = 0;
 			rc.top = 0;
 			rc.right = 200*ssaa_scale;
 			rc.bottom = 200*ssaa_scale;
 
-			//////
-			cr = GetPixel(hdc, 10, 0);		// get background color
-			brush = CreateSolidBrush(cr);
-			FillRect(hdc_tmp, &rc, brush);
+
+			brush = CreateSolidBrush(GetSysColor(COLOR_3DFACE));	// get dialog window background color
+			FillRect(hdc_tmp, &rc, brush);			
+			SelectObject(hdc_tmp, brush);
+			//
 
 			MoveToEx(hdc_tmp, 0, 0, NULL);
 			LineTo(hdc_tmp, 50*ssaa_scale, 200*ssaa_scale);
 			Ellipse(hdc_tmp, 30*ssaa_scale, 30*ssaa_scale, 120*ssaa_scale, 90*ssaa_scale);
 
+			//MoveToEx(hdc_tmp, 50, 50, NULL);
+			//LineTo(hdc_tmp, 50, 50);
 
-			//SetStretchBltMode(hdc, HALFTONE);
-			//StretchBlt(hdc, 50, 0, 200, 200, hdc_tmp, 0, 0, 200*ssaa_scale, 200*ssaa_scale, SRCCOPY);
+			// StretchBlt with HALFTONE is same as Bilinear interpolation
+			//setstretchbltmode(hdc, halftone);
+			//stretchblt(hdc, 50, 0, 200, 200, hdc_tmp, 0, 0, 200*ssaa_scale, 200*ssaa_scale, srccopy);
 			
-			
+			ZeroMemory(&bi_aa, sizeof(BITMAPINFOHEADER));
 			bi_aa.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 			bi_aa.bmiHeader.biWidth = 200;
-			bi_aa.bmiHeader.biHeight = -200;
+			bi_aa.bmiHeader.biHeight = -200;		// (-): top-bottom, (+): bottom-top
 			bi_aa.bmiHeader.biPlanes = 1;
 			bi_aa.bmiHeader.biBitCount = 32;
+			bi_aa.bmiHeader.biClrUsed = 0;
+			bi_aa.bmiHeader.biClrImportant = 0;
 			bi_aa.bmiHeader.biCompression = BI_RGB;
 
 			bmp = CreateDIBSection(NULL, &bi_aa, DIB_RGB_COLORS, &pbits, NULL, 0);
 			hdc_aa = CreateCompatibleDC(NULL);
 			SelectObject(hdc_aa, bmp);
 
-			count = 0;
-			// Bilinear interpolation
+			b = pbits_tmp;
+			c = pbits;
+			// 24 bit: BGRBGR.... + 0 padding to 1-byte per 3-byte BGR	(very confusing)
+			// 32-bit: BGRA	(much easier to use than 24-bit)
+
+			// Bilinear interpolation (Fast)
 			for (i=0; i<200; i++) {
 				for (j=0; j<200; j++) {
-					cr1 = GetPixel(hdc_tmp, i*2, j*2);
-					cr2 = GetPixel(hdc_tmp, i*2, 1+j*2);
-					cr3 = GetPixel(hdc_tmp, 1+i*2, j*2);
-					cr4 = GetPixel(hdc_tmp, 1+i*2, 1+j*2);
-
-					red = (GetRValue(cr1) + GetRValue(cr2) + GetRValue(cr3) + GetRValue(cr4)) / 4;
-					green = (GetGValue(cr1) + GetGValue(cr2) + GetGValue(cr3) + GetGValue(cr4)) / 4;
-					blue = (GetBValue(cr1) + GetBValue(cr2) + GetBValue(cr3) + GetBValue(cr4)) / 4;
-
-					// BUG: SetPixel() is too slow, use BitBlt instead
-					//SetPixelV(hdc, i, j, RGB(red, green, blue));
-
-					pbits[j*200+i] = RGB(red, green, blue);
+					c[i*200+j].rgbBlue = ( b[i*400*2+j*2].rgbBlue + b[i*400*2+(j*2+1)].rgbBlue + b[(i*400*2+400)+j*2].rgbBlue + b[(i*400*2+400)+(j*2+1)].rgbBlue ) / 4;
+					c[i*200+j].rgbGreen = ( b[i*400*2+j*2].rgbGreen + b[i*400*2+(j*2+1)].rgbGreen + b[(i*400*2+400)+j*2].rgbGreen + b[(i*400*2+400)+(j*2+1)].rgbGreen ) / 4;
+					c[i*200+j].rgbRed = ( b[i*400*2+j*2].rgbRed + b[i*400*2+(j*2+1)].rgbRed + b[(i*400*2+400)+j*2].rgbRed + b[(i*400*2+400)+(j*2+1)].rgbRed ) / 4;
+					//c[i*200+j].rgbReserved = 0;		// not used (reserved for alpha)
 				}
 			}
-			/*int c = 0;
-			for (i=0; i<200; i++) {
-				for (j=0; j<200; j++) {
-				cr1 = pbits_tmp[i*2 + j*2];
-				cr2 = pbits_tmp[(i*2) + (1+j*2)];
-				cr3 = pbits_tmp[(1+i*2) + (1+j*2)];
-				cr4 = pbits_tmp[(1+i*2) + (1+j*2)];
-
-				red = (GetRValue(cr1) + GetRValue(cr2) + GetRValue(cr3) + GetRValue(cr4)) / 4;
-				green = (GetGValue(cr1) + GetGValue(cr2) + GetGValue(cr3) + GetGValue(cr4)) / 4;
-				blue = (GetBValue(cr1) + GetBValue(cr2) + GetBValue(cr3) + GetBValue(cr4)) / 4;
-
-				pbits[i+j*200] = RGB(red, green, blue);
-				}
-			}*/
 			
-			BitBlt(hdc, 0, 0, 200, 200, hdc_aa, 0, 0, SRCCOPY);
+			
 
+			// Bilinear interpolation (Slow)
+			//for (i=0; i<200; i++) {
+			//	for (j=0; j<200; j++) {
+			//		cr1 = GetPixel(hdc_tmp, i*ssaa_scale, j*ssaa_scale);
+			//		cr2 = GetPixel(hdc_tmp, i*ssaa_scale, 1+j*ssaa_scale);
+			//		cr3 = GetPixel(hdc_tmp, 1+i*ssaa_scale, j*ssaa_scale);
+			//		cr4 = GetPixel(hdc_tmp, 1+i*ssaa_scale, 1+j*ssaa_scale);
+
+			//		red = (GetRValue(cr1) + GetRValue(cr2) + GetRValue(cr3) + GetRValue(cr4)) / 4;
+			//		green = (GetGValue(cr1) + GetGValue(cr2) + GetGValue(cr3) + GetGValue(cr4)) / 4;
+			//		blue = (GetBValue(cr1) + GetBValue(cr2) + GetBValue(cr3) + GetBValue(cr4)) / 4;
+			//		
+			//		// BUG: SetPixel() is too slow, better use BitBlt pointer 'pbits'
+			//		SetPixelV(hdc_aa, i, j, RGB(red, green, blue));
+
+			//		//pbits[i*200+j] = RGB(red, green, blue);		// OK. 24-bit interpolation
+			//		//pbits[i*200+j] = RGB(0,255,0);
+			//		
+			//	}
+			//}
+
+			BitBlt(hdc, 0, 0, 200, 200, hdc_aa, 0, 0, SRCCOPY);
+			//BitBlt(hdc, 0, 0, 400, 400, hdc_tmp, 0, 0, SRCCOPY);
+
+			SelectObject(hdc, brush);
 			// draw line & elipse without AA (original)
 			pen_solid2 = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
 			holdPen2 = SelectObject(hdc, pen_solid2);
 			MoveToEx(hdc, 400, 0, NULL);
 			LineTo(hdc, 50+400, 200);
 			Ellipse(hdc, 30+400, 30, 120+400, 90);
+			
+			paintRect(hdc);
 
 			EndPaint(hwnd, &ps);
 			
@@ -1015,7 +1179,6 @@ LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			DeleteObject(bmp);
 			DeleteObject(bmp_tmp);
 			DeleteObject(pen_solid1);
-			DeleteObject(holdPen1);
 			DeleteObject(pen_solid2);
 			DeleteObject(holdPen2);
 			DeleteDC(hdc_tmp);
