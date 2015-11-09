@@ -4,21 +4,21 @@
 	License : Public Domain
 */
 
+/* processorArchitecture value can be 'x86', 'amd64', or '*' */
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 	name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
 	processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
-/* processorArchitecture value can be 'x86', 'amd64', or '*' */
+
 
 #pragma comment(lib, "Comctl32.lib")
 #pragma comment(lib, "Msimg32.lib")
-
 
 /* force MSVC to use ANSI/WideChar function, must be before #include <windows.h> */
 #define UNICODE
 //#undef UNICODE
 
-//#include <stdio.h>
+
 #include <windows.h>
 #include <commctrl.h>
 #include <richedit.h>
@@ -658,7 +658,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			
 
 			// LoadImage(): 0 -> actual resource size,  LR_DEFAULTSIZE -> fit to parent
-			kurtd3_bitmap = LoadImageW(NULL, L"babymetal-july-babymetal-2014-promo-636-transparent.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+			kurtd3_bitmap = LoadImageW(NULL, L"kurtd3.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 
 			/*HDC hdc = GetDC(kurtd3_bitmap);
 			HDC hdcMem = CreateCompatibleDC(hdc);
@@ -681,7 +681,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			
 
 			// SysLink (hyperlink)
-			hLink1 = CreateWindowW(L"SysLink" , L"SysLink: <A HREF=\"http://bitbucket.org/SiraitX\">click here!</A>", WS_VISIBLE | WS_CHILD | WS_TABSTOP, 
+			hLink1 = CreateWindowW(L"SysLink" , L"SysLink: <a id=\"click1_id\" href=\"http://click1.com/\">Click 1</a> and <a id=\"click2_id\" href=\"http://click2.com/\">Click 2</a>", WS_VISIBLE | WS_CHILD | WS_TABSTOP, 
 				270, 350, 180, 15, hwnd, (HMENU) 7600, NULL, NULL);
 
 			SendMessageW(hLink1, WM_SETFONT, (WPARAM) hfont2, TRUE);
@@ -897,19 +897,26 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					} else ShowWindow(tabButton1, SW_HIDE);
 					break;
 				case NM_CLICK:		// msg from SysLink control, Fall through to the next case.
-					
-				case NM_RETURN:		// handle mouse click & tabstop [ENTER]
+				case NM_RETURN:		// handle mouse click & keyboard accessibility
 					switch (((LPNMHDR)lParam)->idFrom) {
 						case 7600:
 						{
 							PNMLINK pNMLink = (PNMLINK) lParam;
 							LITEM item = pNMLink->item;
-							if ((((LPNMHDR)lParam)->hwndFrom == hLink1) && (item.iLink == 0)) {
+
+							// using html id
+							if (!lstrcmpiW(pNMLink->item.szID, L"click1_id")) {
+								ShellExecuteW(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
+							} else if (!lstrcmpiW(pNMLink->item.szID, L"click2_id")) {
 								ShellExecuteW(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
 							}
-							else if (wcscmp(item.szID, L"idInfo") == 0) {
-								MessageBoxW(NULL, L"Can't open hyperlink", L"Error", MB_OK);
-							}
+
+							// another way using number
+							/*if (item.iLink == 0) {
+								ShellExecuteW(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
+							} else if (item.iLink == 1) {
+								ShellExecuteW(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
+							}*/
 							break;
 						}
 					}
