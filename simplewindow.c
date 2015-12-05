@@ -18,6 +18,13 @@
 #define UNICODE
 //#undef UNICODE
 
+/* turn off deprecation & warnings */
+#define _CRT_SECURE_NO_DEPRECATE
+#define _CRT_SECURE_NO_DEPRECATE_GLOBALS
+#define _CRT_OBSOLETE_NO_DEPRECATE
+#define _CRT_NONSTDC_NO_DEPRECATE
+#define _CRT_SECURE_NO_WARNINGS
+
 
 #include <windows.h>
 #include <commctrl.h>
@@ -209,13 +216,15 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 			// get default font from system
 			// System font. By default, the system uses the system font to draw menus, dialog box controls, and text. 
-			// Windows 95/98 and Windows NT: The system font is MS Sans Serif. 
+			// Windows 95/98/ME/NT: The system font is MS Sans Serif. 
 			// Windows 2000/XP: The system font is Tahoma
+			// Windows 7/8/10:  The system font is Segoe UI
+
 			hfont_default = GetStockObject(SYSTEM_FONT);
 
-			// get system default font (default: Segoe UI 15)
-			ncm.cbSize = sizeof(NONCLIENTMETRICS);
-			SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICS), &ncm, 0);
+			// get system default font
+			ncm.cbSize = sizeof(NONCLIENTMETRICSW);
+			SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICSW), &ncm, 0);
 
 			hfont2 = CreateFontIndirectW(&ncm.lfMessageFont);
 			
@@ -388,7 +397,12 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			DeleteObject(hfont1);
 			DeleteObject(hfont2);
 			DeleteObject(hfont3);
+			DeleteObject(hfont_custom);
+			DeleteObject(hfont_default);
+			DeleteObject(hfont_hyperlink);
+
 			DeleteObject(hBitmap);
+
 			FreeLibrary(hmod);
 
 			PostQuitMessage(0);

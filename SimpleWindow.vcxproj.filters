@@ -38,6 +38,9 @@
     <ClCompile Include="transparent-control.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="mutex.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc">
