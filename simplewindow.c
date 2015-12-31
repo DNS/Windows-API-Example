@@ -39,7 +39,8 @@
 #define IDM_FILE_DIALOG 15
 #define IDM_FILE_COLOR 16
 #define IDM_FILE_CONTROL 17
-#define IDM_FILE_ANTIALIASING 18
+#define IDM_FILE_TRANSPARENCY 18
+#define IDM_FILE_ANTIALIASING 19
 #define IDM_HELP_ABOUT 21
 #define IDM_FILE_CHART_HISTOGRAM 5554
 #define IDM_FILE_CHART_BAR 5555
@@ -66,6 +67,7 @@ INT WINAPI wWinMain (HINSTANCE, HINSTANCE, PWSTR, INT);
 LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK ControlProc (HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK BitmapProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK aaProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK histogramProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PanelProc (HWND, UINT, WPARAM, LPARAM);
@@ -170,12 +172,14 @@ BOOL CALLBACK DestroyChildWindow (HWND hwnd, LPARAM lParam) {
 }
 
 LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	HWND hwnd_control, hwnd_dialog, hwnd_aa;
+	HWND hwnd_control, hwnd_dialog, hwnd_aa, hwnd_trans;
 	POINT point;
 	UINT state;
 	static HWND hwndPanel;
 	RECT rectParent;
-	WNDCLASSEX wc1 = {0}, wc2 = {0}, wc3 = {0};		// initialize with 0 / 
+	WNDCLASSEX wc_ctrl = {0}, wc_aa = {0}, wc_dialog = {0}, wc_chart = {0};		// fill with 0 / NUL
+	WNDCLASSEX wc_trans = {0};
+	HBITMAP hBitmap1, hbmpOld;
 
 	switch (msg) {
 		case WM_CREATE:
@@ -196,7 +200,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			BuildToolBar(hwnd);
 			CreateMyTooltip(hwnd);
 			
-			// Win XP: Tahoma 13, .NET: Microsoft Sans Serif 14, Win 7: Segoe UI 15
+			// Win98/WinME/WinXP: Tahoma 13, .NET: Microsoft Sans Serif 14, Win7: Segoe UI 15
 			// get custom font
 			hfont1 = CreateFontW(13, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET, 
 				OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
@@ -226,7 +230,9 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			ncm.cbSize = sizeof(NONCLIENTMETRICSW);
 			SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICSW), &ncm, 0);
 
-			hfont2 = CreateFontIndirectW(&ncm.lfMessageFont);
+			// ncm.lfMessageFont will break on WinXP
+			//hfont2 = CreateFontIndirectW(&ncm.lfMessageFont);
+			hfont2 = hfont1;
 			
 			/*ghwndEdit = CreateWindowW(L"EDIT", L"abcd",
 				WS_VISIBLE | WS_CHILD | WS_HSCROLL | WS_VSCROLL | ES_MULTILINE | ES_WANTRETURN | WS_CLIPCHILDREN,
@@ -262,13 +268,13 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					ShellExecuteW(NULL, L"open", L"http://bitbucket.org/SiraitX", NULL, NULL, SW_SHOWNORMAL);
 					break;
 				case IDM_FILE_DIALOG:
-					ZeroMemory(&wc3, sizeof(wc3));
-					wc3.cbSize = sizeof(WNDCLASSEX);
-					wc3.lpfnWndProc = (WNDPROC) DialogProc;
-					wc3.hInstance = GetModuleHandleW(NULL);
-					wc3.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
-					wc3.lpszClassName = L"DialogClass";
-					RegisterClassExW(&wc3);
+					ZeroMemory(&wc_dialog, sizeof(wc_dialog));
+					wc_dialog.cbSize = sizeof(WNDCLASSEX);
+					wc_dialog.lpfnWndProc = (WNDPROC) DialogProc;
+					wc_dialog.hInstance = GetModuleHandleW(NULL);
+					wc_dialog.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+					wc_dialog.lpszClassName = L"DialogClass";
+					RegisterClassExW(&wc_dialog);
 					hwnd_dialog = CreateWindowExW(WS_EX_DLGMODALFRAME | WS_EX_TOPMOST, 
 						L"DialogClass", L"Dialog, ToolBar, & Rebar", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
 						100, 100, 400, 400, 
@@ -279,13 +285,13 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					InvalidateRect(hwndPanel, NULL, TRUE);
 					break;
 				case IDM_FILE_CONTROL:
-					ZeroMemory(&wc1, sizeof(wc1));
-					wc1.cbSize = sizeof(WNDCLASSEX);
-					wc1.lpfnWndProc = (WNDPROC) ControlProc;
-					wc1.hInstance = ghInstance;
-					wc1.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
-					wc1.lpszClassName = L"ControlClass";
-					RegisterClassExW(&wc1);
+					ZeroMemory(&wc_ctrl, sizeof(wc_ctrl));
+					wc_ctrl.cbSize = sizeof(WNDCLASSEX);
+					wc_ctrl.lpfnWndProc = (WNDPROC) ControlProc;
+					wc_ctrl.hInstance = ghInstance;
+					wc_ctrl.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+					wc_ctrl.lpszClassName = L"ControlClass";
+					RegisterClassExW(&wc_ctrl);
 					
 					hwnd_control = CreateWindowExW(WS_EX_DLGMODALFRAME, L"ControlClass", 
 						L"Dialog Box", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
@@ -296,14 +302,29 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					SendMessageW(hwnd_control, WM_SETFONT, (WPARAM) hfont3, TRUE);
 
 					break;
+				case IDM_FILE_TRANSPARENCY:
+					ZeroMemory(&wc_trans, sizeof(wc_trans));
+					wc_trans.cbSize = sizeof(WNDCLASSEX);
+					wc_trans.lpfnWndProc = (WNDPROC) BitmapProc;
+					wc_trans.hInstance = ghInstance;
+					wc_trans.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+					wc_trans.lpszClassName = L"BitmapClass";
+					RegisterClassExW(&wc_trans);
+					
+					hwnd_trans = CreateWindowExW(WS_EX_DLGMODALFRAME, L"BitmapClass", 
+						L"Bitmap Example (Transparency, Bit Mask)", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
+						100, 100, 600, 400, hwnd, (HMENU) NULL, GetModuleHandle(NULL), NULL);
+
+					EnableWindow(hwnd, FALSE);	// make hwnd_tmp modal window
+					break;
 				case IDM_FILE_ANTIALIASING:
-					ZeroMemory(&wc2, sizeof(wc2));
-					wc2.cbSize = sizeof(WNDCLASSEX);
-					wc2.lpfnWndProc = (WNDPROC) aaProc;
-					wc2.hInstance = ghInstance;
-					wc2.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
-					wc2.lpszClassName = L"AntiAliasingClass";
-					RegisterClassExW(&wc2);
+					ZeroMemory(&wc_aa, sizeof(wc_aa));
+					wc_aa.cbSize = sizeof(WNDCLASSEX);
+					wc_aa.lpfnWndProc = (WNDPROC) aaProc;
+					wc_aa.hInstance = ghInstance;
+					wc_aa.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+					wc_aa.lpszClassName = L"AntiAliasingClass";
+					RegisterClassExW(&wc_aa);
 					
 					hwnd_aa = CreateWindowExW(WS_EX_DLGMODALFRAME, L"AntiAliasingClass", 
 						L"Anti Aliasing Example", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
@@ -328,13 +349,13 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					}
 					break;
 				case IDM_FILE_CHART_HISTOGRAM:
-					ZeroMemory(&wc2, sizeof(wc2));
-					wc2.cbSize = sizeof(WNDCLASSEX);
-					wc2.lpfnWndProc = (WNDPROC) histogramProc;
-					wc2.hInstance = ghInstance;
-					wc2.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
-					wc2.lpszClassName = L"HistogramWindowClass";
-					RegisterClassExW(&wc2);
+					ZeroMemory(&wc_chart, sizeof(wc_chart));
+					wc_chart.cbSize = sizeof(WNDCLASSEX);
+					wc_chart.lpfnWndProc = (WNDPROC) histogramProc;
+					wc_chart.hInstance = ghInstance;
+					wc_chart.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
+					wc_chart.lpszClassName = L"HistogramWindowClass";
+					RegisterClassExW(&wc_chart);
 					
 					hwnd_aa = CreateWindowExW(WS_EX_DLGMODALFRAME, L"HistogramWindowClass", 
 						L"Histogram Chart", WS_VISIBLE | WS_SYSMENU | WS_CAPTION, 
@@ -438,6 +459,7 @@ void AddMenus (HWND hwnd) {
 	AppendMenuW(hMenu1, MF_POPUP, (UINT_PTR) submenu1, L"&Submenu1");
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_CONTROL, L"Win32 Standard &Control");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_TRANSPARENCY, L"&Bitmap Example");
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_ANTIALIASING, L"&Anti Aliasing");
 	AppendMenuW(hMenu1, MF_POPUP, (UINT_PTR) chartmenu, L"&Charts");
 
@@ -808,6 +830,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			}
 			SetBkMode((HDC) wParam, TRANSPARENT);			// change text background color
 			return hbrush_syscolor;		// set background color using HBRUSH
+
 			break;
 		case WM_CTLCOLORBTN:
 			{
@@ -1006,44 +1029,131 @@ BYTE ChangeEndianness (BYTE value) {
 
 void paintRect (HDC hdc) {
 	RECT dim = {0,0,200,200};
-        HDC tempHdc = CreateCompatibleDC(hdc);
-        BLENDFUNCTION blend;
-		blend.BlendOp = AC_SRC_OVER;
-		blend.BlendFlags = 0;
-		blend.SourceConstantAlpha = 127;	// half transparent
-		blend.AlphaFormat = AC_SRC_ALPHA;	// 0, AC_SRC_ALPHA
+	HDC tempHdc = CreateCompatibleDC(hdc);
+	BLENDFUNCTION blend;
+	blend.BlendOp = AC_SRC_OVER;
+	blend.BlendFlags = 0;
+	blend.SourceConstantAlpha = 127;	// half transparent
+	blend.AlphaFormat = AC_SRC_ALPHA;	// 0, AC_SRC_ALPHA
 
-        HBITMAP hbitmap;       // bitmap handle 
-        BITMAPINFO bmi;        // bitmap header 
-        // zero the memory for the bitmap info 
-        ZeroMemory(&bmi, sizeof(BITMAPINFO));
+	HBITMAP hbitmap;       // bitmap handle 
+	BITMAPINFO bmi;        // bitmap header 
+	// zero the memory for the bitmap info 
+	ZeroMemory(&bmi, sizeof(BITMAPINFO));
 
-        // setup bitmap info  
-        // set the bitmap width and height to 60% of the width and height of each of the three horizontal areas. Later on, the blending will occur in the center of each of the three areas. 
-        bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        bmi.bmiHeader.biWidth = dim.right-dim.left;
-        bmi.bmiHeader.biHeight = -(dim.bottom-dim.top);
-        bmi.bmiHeader.biPlanes = 1;
-        bmi.bmiHeader.biBitCount = 32;         // four 8-bit components 
-        bmi.bmiHeader.biCompression = BI_RGB;
-        bmi.bmiHeader.biSizeImage = (dim.right-dim.left) * (dim.bottom-dim.top) * 4;
+	// setup bitmap info  
+	// set the bitmap width and height to 60% of the width and height of each of the three horizontal areas. Later on, the blending will occur in the center of each of the three areas. 
+	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmi.bmiHeader.biWidth = dim.right-dim.left;
+	bmi.bmiHeader.biHeight = -(dim.bottom-dim.top);
+	bmi.bmiHeader.biPlanes = 1;
+	bmi.bmiHeader.biBitCount = 32;         // four 8-bit components 
+	bmi.bmiHeader.biCompression = BI_RGB;
+	bmi.bmiHeader.biSizeImage = (dim.right-dim.left) * (dim.bottom-dim.top) * 4;
 
-        // create our DIB section and select the bitmap into the dc 
-        hbitmap = LoadImageW(NULL, L"123.bmp", IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION | LR_LOADFROMFILE);;//CreateDIBSection(tempHdc, &bmi, DIB_RGB_COLORS, NULL, NULL, 0x0);
-        //SelectObject(tempHdc, hbitmap);
-		//PremultiplyBitmapAlpha (tempHdc, hbitmap);
-		//BitBlt(hdc, 0, 0, 200, 200, tempHdc, 0, 0, SRCCOPY);
+	// create our DIB section and select the bitmap into the dc 
+	hbitmap = LoadImageW(NULL, L"123.bmp", IMAGE_BITMAP, 0, 0, LR_CREATEDIBSECTION | LR_LOADFROMFILE);;//CreateDIBSection(tempHdc, &bmi, DIB_RGB_COLORS, NULL, NULL, 0x0);
+	//SelectObject(tempHdc, hbitmap);
+	//PremultiplyBitmapAlpha (tempHdc, hbitmap);
+	//BitBlt(hdc, 0, 0, 200, 200, tempHdc, 0, 0, SRCCOPY);
 
 
-        /*SetDCPenColor(tempHdc, RGB(0,0,255));
-        SetDCBrushColor(tempHdc, RGB(0,0,255));
-        FillRect(tempHdc, &dim, CreateSolidBrush(RGB(0,0,255)));
-		*/
-		//PremultiplyBitmapAlpha (tempHdc, hbitmap);
-       AlphaBlend(hdc, dim.left, dim.top, dim.right, dim.bottom, tempHdc, dim.left, dim.top, dim.right, dim.bottom, blend); 
-
+	/*SetDCPenColor(tempHdc, RGB(0,0,255));
+	SetDCBrushColor(tempHdc, RGB(0,0,255));
+	FillRect(tempHdc, &dim, CreateSolidBrush(RGB(0,0,255)));
+	*/
+	//PremultiplyBitmapAlpha (tempHdc, hbitmap);
+	AlphaBlend(hdc, dim.left, dim.top, dim.right, dim.bottom, tempHdc, dim.left, dim.top, dim.right, dim.bottom, blend); 
 
 }
+
+
+LRESULT CALLBACK BitmapProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+	HWND hwnd_parent;
+	BOOL ret;
+	HDC hdc, hdc_tmp, hdc_aa;
+	PAINTSTRUCT ps, ps2;
+	int i, j, k;
+	HPEN pen_solid1, pen_solid2, holdPen1, holdPen2;
+	RECT rc;
+	int ssaa_scale;
+	HBITMAP bmp;
+	HBITMAP bmp_tmp;
+	BITMAPINFO bi_aa = {0}, bi_tmp = {0};
+	LPCOLORREF pbits, pbits_tmp;
+	HBRUSH brush;
+	COLORREF cr;
+	COLORREF cr1, cr2, cr3, cr4;
+	BYTE red, green, blue;
+	int count;
+	RGBQUAD *b,*c;
+	HDC hdcMem;
+	HBITMAP hBitmap1, hbmpOld;
+
+	switch (msg) {
+		case WM_CREATE:
+			/*CreateWindowW(L"STATIC", L"Anti Aliasing 2x \n(Bilinear interpolation)", 
+				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
+				50, 250, 250, 37, hwnd, (HMENU) 4714, NULL, NULL);
+			CreateWindowW(L"STATIC", L"Original (No AA)", 
+				WS_CHILD | WS_VISIBLE | SS_LEFT | WS_TABSTOP, 
+				380, 250, 250, 17, hwnd, (HMENU) 4715, NULL, NULL);*/
+
+			//InvalidateRect(hwnd, NULL, FALSE);
+
+			
+
+			
+			break;
+		case WM_PAINT:
+		{
+			HPEN hPen, holdPen;
+			HBRUSH hBrush1, holdBrush;
+
+			GetClientRect(hwnd, &rc);
+			hdc = BeginPaint(hwnd, &ps) ;
+			hdc_tmp = CreateCompatibleDC(hdc);
+
+			/*hPen = CreatePen(PS_NULL, 1, RGB(0, 0, 0));
+			holdPen = SelectObject(hdc, hPen);
+			hBrush1 = CreateSolidBrush(RGB(127, 0, 0));
+			holdBrush = SelectObject(hdc, hBrush1);
+			Ellipse(hdc, 30, 30, 120, 90);*/
+
+
+			hBitmap1 = LoadImageA(NULL, "transparency-32bit.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+			HDC bitmaphdc = CreateCompatibleDC(hdc);
+			hbmpOld = SelectObject(bitmaphdc, hBitmap1);
+			BitBlt(hdc, 0, 0, 128, 128, bitmaphdc, 0, 0, SRCCOPY);
+			SelectObject(bitmaphdc, hbmpOld);
+
+
+			//ReleaseDC(hwnd, hdc);
+			DeleteDC(bitmaphdc);
+			EndPaint(hwnd, &ps);
+		}
+			break;
+		case WM_CLOSE:
+			hwnd_parent = GetWindow(hwnd, GW_OWNER);
+			ret = EnableWindow(hwnd_parent, TRUE);
+			BringWindowToTop(hwnd_parent);		// show parent window
+
+			if (ret == FALSE) MessageBoxW(NULL, L"GetWindow() FAIL", L"DEBUG", MB_OK);
+			
+			ShowWindow(hwnd_parent, SW_RESTORE);
+			ShowWindow(hwnd_parent, SW_SHOW);
+
+			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
+			DestroyWindow(hwnd);
+			break;
+		case WM_DESTROY:
+			
+			break;
+	}
+
+	return DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
 
 /* Anti Aliasing procedure */
 LRESULT CALLBACK aaProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {

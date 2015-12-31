@@ -32,6 +32,7 @@
     </ClCompile>
     <ClCompile Include="mutex.c">
       <FileType>Text</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="redirect-stdout.c">
       <SubType>
@@ -45,12 +46,15 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="splashscreen-bmp32.c">
+      <FileType>Text</FileType>
+    </ClCompile>
     <ClCompile Include="splitwindow.c">
       <FileType>Text</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="splashscreen-wic.c">
+    <ClCompile Include="splashscreen-wic-png.c">
       <SubType>
       </SubType>
       <FileType>Text</FileType>
@@ -154,7 +158,7 @@
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>Comctl32.lib;msxml6.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
