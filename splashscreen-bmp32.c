@@ -2,7 +2,7 @@
 /*
 
 UpdateLayeredWindow() expect the BMP file need to be 32-bit BGRA 
-(with Premultiplied Alpha & Down-Top row order).
+(with Premultiplied Alpha & Down-Top (or Bottom-Up) row order).
 
 Adobe Photoshop doesn't support BMP with premultiplied alpha.
 Use Pixelformer to convert PNG with alpha to BMP with premultiplied alpha.
@@ -121,6 +121,9 @@ LRESULT CALLBACK SplashProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 
 			break;
 		case WM_PAINT:
+			break;
+		case WM_TIMER:
+
 			break;
 		case WM_CLOSE:
 			break;
