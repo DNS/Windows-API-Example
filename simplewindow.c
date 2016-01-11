@@ -49,7 +49,7 @@
 HMENU hMenubar1, hMenu1, hMenu2, submenu1, hMenubar2, hMenu2, hPopUp1, chartmenu;
 HINSTANCE ghInstance;
 HWND ghwndEdit, staticimage1;
-HWND hEdit , hLabel, button1, button2, checkbox1, tabButton1, hDialogLabel;
+HWND hEdit , hLabel, button1, button2, checkbox1, tabButton1, hDialogLabel, wrap_text, wrap_text2, selectable_text;
 HWND radiobtn1, radiobtn2, radiobtn3, hProgressBar, treeview1, hDebugLabel;
 HFONT hfont1, hfont2, hfont3, hfont_custom, hfont_hyperlink, hfont_default;
 HBITMAP hBitmap, kurtd3_bitmap;
@@ -555,11 +555,25 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			// EDIT ctrl: max 32,767 bytes
 			hEdit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"This is edit", 
-				WS_VISIBLE | WS_CHILD | WS_TABSTOP | ES_LEFT | ES_AUTOHSCROLL | ES_NOHIDESEL,
+				WS_VISIBLE | WS_CHILD | WS_TABSTOP | ES_LEFT | ES_AUTOHSCROLL | ES_NOHIDESEL, 
 				20, 110, 185, 21, hwnd, (HMENU) 800, NULL, NULL);	// WS_BORDER
 
 			//hResize = CreateWindowW(L"STATIC", L"Debug Label !!!", WS_CHILD | WS_VISIBLE, 
 			//	550, 20, 200, 13, hwnd, (HMENU) 3111, NULL, NULL);
+
+			wrap_text = CreateWindowW(L"STATIC", 
+				L"&ampersand shortcut key disabled (SS_NOPREFIX). The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.", 
+				WS_CHILD | WS_VISIBLE | SS_CENTER | SS_NOPREFIX, 
+				560, 180, 150, 80, hwnd, (HMENU) 502, NULL, NULL);
+
+			wrap_text2 = CreateWindowW(L"STATIC", 
+				L"&ampersand shortcut key enabled.", 
+				WS_CHILD | WS_VISIBLE | SS_CENTER, 
+				560, 280, 150, 80, hwnd, (HMENU) 502, NULL, NULL);
+
+			selectable_text = CreateWindowExW(NULL, L"EDIT", L"This is selectable text.", 
+				WS_VISIBLE | WS_CHILD | WS_TABSTOP | ES_LEFT | ES_AUTOHSCROLL | ES_NOHIDESEL | ES_READONLY,
+				560, 320, 120, 21, hwnd, (HMENU) 503, NULL, NULL);
 
 			// better font
 			SendMessageW(hEdit, WM_SETFONT, (WPARAM) hfont1, TRUE);
@@ -567,9 +581,12 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			SendMessageW(button2, WM_SETFONT, (WPARAM) hfont1, TRUE);
 			SendMessageW(checkbox1, WM_SETFONT, (WPARAM) hfont3, TRUE);
 
-			SendMessageW(button1, WM_SETFONT, (WPARAM) hfont2, TRUE);	
+			SendMessageW(button1, WM_SETFONT, (WPARAM) hfont2, TRUE);
 			SendMessageW(hEdit, WM_SETFONT, (WPARAM) hfont2, MAKELPARAM(TRUE, 0));
 			SendMessageW(hDebugLabel, WM_SETFONT, (WPARAM) hfont1, TRUE);
+			SendMessageW(wrap_text, WM_SETFONT, (WPARAM) hfont1, TRUE);
+			SendMessageW(wrap_text2, WM_SETFONT, (WPARAM) hfont1, TRUE);
+			SendMessageW(selectable_text, WM_SETFONT, (WPARAM) hfont1, TRUE);
 			
 			//ShowWindow(hwnd_tmp, SW_SHOW);	// already WS_VISIBLE
 
