@@ -5,6 +5,7 @@ UpdateLayeredWindow() expect the BMP file need to be 32-bit BGRA
 (with Premultiplied Alpha & Down-Top (or Bottom-Up) row order).
 
 Adobe Photoshop doesn't support BMP with premultiplied alpha.
+
 Use Pixelformer to convert PNG with alpha to BMP with premultiplied alpha.
 
 The transparent "TEST 123" text will be click-trough to the background program.

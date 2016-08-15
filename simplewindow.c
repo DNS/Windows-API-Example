@@ -64,8 +64,8 @@ HMODULE hmod;
 HBRUSH hbrush_syscolor;
 
 INT WINAPI wWinMain (HINSTANCE, HINSTANCE, PWSTR, INT);
-LRESULT CALLBACK WndProc (HWND, UINT, WPARAM, LPARAM);
-LRESULT CALLBACK DialogProc (HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK WindowProc (HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK DialogToolbarProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK ControlProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK BitmapProc (HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK aaProc (HWND, UINT, WPARAM, LPARAM);
@@ -98,14 +98,14 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	HWND hwnd;
 	WNDCLASSEX wc = {0};		// initialize with NULL / 0
 	INITCOMMONCONTROLSEX iccex;
-	ACCEL accel[2];
+	ACCEL accel[4];
 	HACCEL hAccel;
 	LONG style;
 
 	ZeroMemory(&wc, sizeof(wc));			// initialize with NULL (other alternative)
 	wc.cbSize = sizeof(WNDCLASSEXW);
 	wc.style = CS_HREDRAW | CS_VREDRAW;
-	wc.lpfnWndProc = WndProc;
+	wc.lpfnWndProc = WindowProc;
 	wc.cbClsExtra= 0;
 	wc.cbWndExtra= 0;
 	wc.hInstance = hInstance;
@@ -148,15 +148,21 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	accel[1].fVirt = FCONTROL | FALT | FVIRTKEY;
 	accel[1].key = 'C';			// must be uppercase
 	accel[1].cmd = 9102;		// msg code to send to WM_COMMAND
+	accel[2].fVirt = FCONTROL | FVIRTKEY;
+	accel[2].key = 'N';			// must be uppercase
+	accel[2].cmd = IDM_FILE_NEW;		// msg code to send to WM_COMMAND
+	accel[3].fVirt = FCONTROL | FVIRTKEY;
+	accel[3].key = 'O';			// must be uppercase
+	accel[3].cmd = IDM_FILE_OPEN;		// msg code to send to WM_COMMAND
 
-	hAccel = CreateAcceleratorTableW(accel, 2);
+	hAccel = CreateAcceleratorTableW(accel, 4);
 	//hAccel = LoadAcceleratorsW(hInstance, MAKEINTRESOURCEW(IDC_SHORTCUT));
 
 	while (GetMessageW(&msg, NULL, 0, 0) > 0) {		/* If no error is received... */
 		if (!IsDialogMessageW(hDlgCurrent, &msg)) {				/* Disable keyboard shorcut when other window active  */
 			if (!TranslateAcceleratorW(hwnd, hAccel, &msg)) {	/* Handle Keyboard shortcut */
 				TranslateMessage(&msg);		/* Translate key codes to chars if present */
-				DispatchMessageW(&msg);		/* Send it to WndProc */
+				DispatchMessageW(&msg);		/* Send it to WindowProc */
 			}
 		}
 	}
@@ -171,7 +177,44 @@ BOOL CALLBACK DestroyChildWindow (HWND hwnd, LPARAM lParam) {
 	return TRUE;
 }
 
-LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+
+DWORD CALLBACK RTF_EditFileCallback (DWORD_PTR dwCookie, LPBYTE lpBuff, LONG cb, PLONG pcb) {
+	HANDLE hFile = (HANDLE)dwCookie;
+	return !ReadFile(hFile, lpBuff, cb, (DWORD *) pcb, NULL);
+}
+
+BOOL RTF_FillRichEditFromFile (HWND hwnd, LPCTSTR pszFile) {
+	BOOL fSuccess = FALSE;
+	HANDLE hFile = CreateFile(pszFile, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	EDITSTREAM es = { (DWORD_PTR) hFile, 0, RTF_EditFileCallback };
+	if (hFile != INVALID_HANDLE_VALUE) {
+		if (SendMessage(hwnd, EM_STREAMIN, SF_RTF, (LPARAM) &es) && es.dwError == 0) {
+			fSuccess = TRUE;
+		}
+
+		CloseHandle(hFile);
+	}
+	return fSuccess;
+}
+
+/* --------------  */
+
+DWORD CALLBACK RTF_EditStreamCallback(DWORD_PTR dwCookie, LPBYTE lpBuff, LONG cb, PLONG pcb) {
+	IStream *pstm = (IStream *) dwCookie;
+	return FAILED(pstm->lpVtbl->Read(pstm, lpBuff, cb, (ULONG*)pcb));
+}
+
+BOOL RTF_FillRichEditFromStream (HWND hwnd, IStream *pstm) {
+	BOOL fSuccess = FALSE;
+	EDITSTREAM es = { (DWORD_PTR)pstm, 0, RTF_EditStreamCallback };
+	if (SendMessage(hwnd, EM_STREAMIN, SF_RTF, (LPARAM)&es) && es.dwError == 0) {
+		fSuccess = TRUE;
+	}
+	return fSuccess;
+}
+
+
+LRESULT CALLBACK WindowProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	HWND hwnd_control, hwnd_dialog, hwnd_aa, hwnd_trans;
 	POINT point;
 	UINT state;
@@ -243,9 +286,10 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			 // RICH EDIT CONTROL
 			LoadLibraryW(L"Msftedit.dll");
 			ghwndEdit = CreateWindowW(MSFTEDIT_CLASS, NULL,
-				WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE |WS_HSCROLL | WS_VSCROLL |WS_BORDER | WS_TABSTOP ,
+				WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | WS_HSCROLL | WS_VSCROLL | WS_BORDER | WS_TABSTOP,
 				50, 50, 260, 180, hwnd, NULL, NULL, NULL);
 
+			//RTF_FillRichEditFromFile(ghwndEdit, L"test.rtf");
 			/*// Scintilla
 			hmod = LoadLibraryW(L"SciLexer.DLL");
 			if (hmod != NULL) {
@@ -270,7 +314,7 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 				case IDM_FILE_DIALOG:
 					ZeroMemory(&wc_dialog, sizeof(wc_dialog));
 					wc_dialog.cbSize = sizeof(WNDCLASSEX);
-					wc_dialog.lpfnWndProc = (WNDPROC) DialogProc;
+					wc_dialog.lpfnWndProc = (WNDPROC) DialogToolbarProc;
 					wc_dialog.hInstance = GetModuleHandleW(NULL);
 					wc_dialog.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
 					wc_dialog.lpszClassName = L"DialogClass";
@@ -412,9 +456,10 @@ LRESULT CALLBACK WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		case WM_CLOSE:
 			EnumChildWindows(hwnd, DestroyChildWindow, lParam);
 			DestroyWindow(hwnd);
-			//DeleteObject(hbrush_syscolor);
+			
 			break;
 		case WM_DESTROY:
+			DeleteObject(hbrush_syscolor);
 			DeleteObject(hfont1);
 			DeleteObject(hfont2);
 			DeleteObject(hfont3);
@@ -443,7 +488,7 @@ void AddMenus (HWND hwnd) {
 	hMenu2 = CreateMenu();
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_NEW, L"&New\tCtrl+N");
-	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_OPEN, L"&Open\tCtrl+C+O");
+	AppendMenuW(hMenu1, MF_STRING, IDM_FILE_OPEN, L"&Open\tCtrl+O");
 
 	AppendMenuW(hMenu1, MF_STRING, IDM_VIEW_STB, L"&Statusbar");
 	CheckMenuItem(hMenu1, IDM_VIEW_STB, MF_CHECKED);	// MF_CHECKED, MF_UNCHECKED
@@ -506,7 +551,7 @@ void PremultiplyBitmapAlpha (HDC hDC, HBITMAP hBmp) {
 }
 
 LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-	// Declaring variable inside WndProc() & DialogProc() is a bad practice because the function
+	// Declaring variable inside WndProc() & DialogToolbarProc() is a bad practice because the function
 	// will get called very often and slow down performance
 	HWND hwnd_parent;
 	UINT checked;
@@ -516,7 +561,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	BOOL ret;
 	TCITEMW tabItem1, tabItem2, tabItem3, tabItem4, tabItem5;
 	WCHAR os_list[5][32] = {L"MSDOS", L"Windows 98 SE", L"Windows ME", L"Windows XP", L"Windows 7"};
-	WCHAR os_other[6][32] = {L"UNIX", L"Linux", L"BSD", L"Plan 9", L"Mac OS X", L"OS/2 WARP"};
+	WCHAR os_other[6][32] = {L"Amiga", L"CPM", L"Linux", L"BSD", L"Mac OS X", L"OS/2 WARP"};
 	
 	hwnd_parent = GetWindow(hwnd, GW_OWNER);
 	
@@ -533,8 +578,9 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			// default Height: Edit 21, Button 25, Static 13, CheckBox 17
 			hLabel = CreateWindowW(L"STATIC", L"This is Label", WS_CHILD | WS_VISIBLE | SS_LEFT, 
 				20, 80, 150, 13, hwnd, (HMENU) 500, NULL, NULL);
-
+			
 			// WS_TABSTOP: The window is a control that can receive the keyboard focus when the user presses the TAB key. 
+			// WC_BUTTON or "BUTTON" 
 			button1 = CreateWindowW(L"BUTTON", L"Push &Button", WS_VISIBLE | WS_CHILD | WS_TABSTOP,
 				20, 50, 90, 25, hwnd, (HMENU) 600, NULL, NULL);
 			hImg = LoadImageW(NULL, L"test123.bmp", IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR | LR_DEFAULTSIZE | LR_LOADFROMFILE);
@@ -549,11 +595,12 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			// BST_CHECKED / BST_INDETERMINATE / BST_UNCHECKED
 			//CheckDlgButton(hwnd, 700, BST_CHECKED);	// same below
 			SendMessageW(checkbox1, BM_SETCHECK, BST_CHECKED, 0);
-
+			
+			// WC_STATIC or "STATIC"
 			hDebugLabel = CreateWindowW(L"STATIC", L"Debug Label !!!", WS_VISIBLE | WS_CHILD | SS_LEFT, 
 				550, 20, 200, 13, hwnd, (HMENU) 3111, NULL, NULL);
-
-			// EDIT ctrl: max 32,767 bytes
+			
+			// WC_EDIT or "EDIT" ctrl: max 32,767 bytes
 			hEdit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"This is edit", 
 				WS_VISIBLE | WS_CHILD | WS_TABSTOP | ES_LEFT | ES_AUTOHSCROLL | ES_NOHIDESEL, 
 				20, 110, 185, 21, hwnd, (HMENU) 800, NULL, NULL);	// WS_BORDER
@@ -562,17 +609,17 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			//	550, 20, 200, 13, hwnd, (HMENU) 3111, NULL, NULL);
 
 			wrap_text = CreateWindowW(L"STATIC", 
-				L"&ampersand shortcut key disabled (SS_NOPREFIX). The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.", 
+				L"&ampersand shortcut key disabled (SS_NOPREFIX). The quick brown fox jumps over the lazy dog.", 
 				WS_CHILD | WS_VISIBLE | SS_CENTER | SS_NOPREFIX, 
-				560, 180, 150, 80, hwnd, (HMENU) 502, NULL, NULL);
+				560, 180, 150, 60, hwnd, (HMENU) 502, NULL, NULL);
 
 			wrap_text2 = CreateWindowW(L"STATIC", 
-				L"&ampersand shortcut key enabled.", 
+				L"&ampersand shortcut key enabled. Press [ALT] to show shortcut key.", 
 				WS_CHILD | WS_VISIBLE | SS_CENTER, 
-				560, 280, 150, 80, hwnd, (HMENU) 502, NULL, NULL);
-
+				560, 260, 150, 80, hwnd, (HMENU) 502, NULL, NULL);
+			
 			selectable_text = CreateWindowExW(NULL, L"EDIT", L"This is selectable text.", 
-				WS_VISIBLE | WS_CHILD | WS_TABSTOP | ES_LEFT | ES_AUTOHSCROLL | ES_NOHIDESEL | ES_READONLY,
+				WS_VISIBLE | WS_CHILD | WS_TABSTOP | ES_LEFT | ES_AUTOHSCROLL | ES_NOHIDESEL | ES_READONLY, 
 				560, 320, 120, 21, hwnd, (HMENU) 503, NULL, NULL);
 
 			// better font
@@ -613,7 +660,9 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				270, 90, 100, 30, hwnd, (HMENU) 6003, NULL, NULL);
 
 			SendMessageW(radiobtn2, BM_SETCHECK, BST_CHECKED, TRUE);		// set default value to radiobtn2
-
+			
+			// WC_COMBOBOX or "COMBOBOX"
+			// WC_COMBOBOXEX (combo box with item images)
 			// ComboBox: CBS_DROPDOWN or CBS_DROPDOWNLIST, msg CB_SETCURSEL, CB_GETCURSEL
 			// [F4] or [Alt + Up/Down] arrow key to display the list using keyboard (use TAB STOP until focus)
 			hCombo = CreateWindowW(L"COMBOBOX", NULL,
@@ -677,15 +726,15 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			BringWindowToTop(tabButton1);
 
-			// CW_LISTBOX or "LISTBOX"
+			// WC_LISTBOX or "LISTBOX"
 			listbox1 = CreateWindowExW(WS_EX_CLIENTEDGE, L"LISTBOX", NULL, 
 				WS_CHILD | WS_VISIBLE | LBS_NOTIFY | LBS_HASSTRINGS,
 				260, 200, 120, 120, hwnd, (HMENU) 3555, NULL, NULL);
 
-			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"UNIX");
+			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"Amiga");
+			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"CPM");
 			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"Linux");
 			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"BSD");
-			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"Plan 9");
 			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"Mac OS X");
 			SendMessageW(listbox1, LB_ADDSTRING, 0, (LPARAM) L"OS/2 WARP");
 
@@ -952,6 +1001,7 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 					break;
 				case NM_CLICK:		// msg from SysLink control, Fall through to the next case.
 				case NM_RETURN:		// handle mouse click & keyboard accessibility
+					//if (((LPNMHDR)lParam)->hwndFrom == syslink1) { ... }
 					switch (((LPNMHDR)lParam)->idFrom) {
 						case 7600:
 						{
@@ -971,6 +1021,10 @@ LRESULT CALLBACK ControlProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 							} else if (item.iLink == 1) {
 								ShellExecuteW(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
 							}*/
+
+							// simplest way
+							//ShellExecuteW(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
+
 							break;
 						}
 					}
@@ -1442,7 +1496,7 @@ LRESULT CALLBACK histogramProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 	return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
-LRESULT CALLBACK DialogProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK DialogToolbarProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	int ctrlID;
 	int requestID;
 	int position;
@@ -1666,12 +1720,12 @@ HWND BuildToolBar (HWND hwnd) {
 
 	// TOOLBARCLASSNAME or "ToolBarWindow32"
 	hToolBar = CreateWindowW(L"ToolBarWindow32", NULL, 
-		WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TBSTYLE_TOOLTIPS |
+		WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TBSTYLE_TOOLTIPS | 
 		TBSTYLE_FLAT | CCS_TOP | BTNS_AUTOSIZE | TBSTYLE_TRANSPARENT, 
 		20, 0, 0, 0, hwnd, (HMENU) 7711, GetModuleHandle(NULL), NULL);
 	SendMessageW(hToolBar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
 	SendMessageW(hToolBar, TB_SETEXTENDEDSTYLE, 0, (LPARAM) TBSTYLE_EX_HIDECLIPPEDBUTTONS);
-
+	
 	tbab.hInst = NULL;	//HINST_COMMCTRL;
 	tbab.nID = (UINT_PTR) hBitmap;	//IDB_STD_SMALL_COLOR;
 
@@ -1784,7 +1838,7 @@ HTREEITEM AddItemToTree (HWND hwndTV, LPCWSTR lpszItem, int nLevel) {
 	tvins.item = tvi;
 	tvins.hInsertAfter = hPrev;
 
-	// Set the parent item based on the specified level. 
+	// Set the parent item based on the specified level.
 	if (nLevel == 1)
 		tvins.hParent = TVI_ROOT;
 	else if (nLevel == 2)
@@ -1792,17 +1846,17 @@ HTREEITEM AddItemToTree (HWND hwndTV, LPCWSTR lpszItem, int nLevel) {
 	else
 		tvins.hParent = hPrevLev2Item;
 
-	// Add the item to the tree-view control. 
+	// Add the item to the tree-view control.
 	hPrev = SendMessageW(hwndTV, TVM_INSERTITEM, 0, &tvins);
 
-	// Save the handle to the item. 
+	// Save the handle to the item.
 	if (nLevel == 1)
 		hPrevRootItem = hPrev;
 	else if (nLevel == 2)
 		hPrevLev2Item = hPrev;
 
 	// The new item is a child item. Give the parent item a 
-	// closed folder bitmap to indicate it now has child items. 
+	// closed folder bitmap to indicate it now has child items.
 	if (nLevel > 1) {
 		hti = TreeView_GetParent(hwndTV, hPrev);
 		tvi.mask = TVIF_IMAGE | TVIF_SELECTEDIMAGE;
@@ -1827,6 +1881,8 @@ void CenterWindow (HWND hwnd) {
 		(GetSystemMetrics(SM_CYSCREEN) - rc.bottom) / 2,
 		0, 0, SWP_NOZORDER | SWP_NOSIZE);
 }
+
+
 
 
 
