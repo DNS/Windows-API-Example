@@ -6,7 +6,7 @@ UpdateLayeredWindow() expect the BMP file need to be 32-bit BGRA
 
 Adobe Photoshop doesn't support BMP with premultiplied alpha.
 
-Use Pixelformer to convert PNG with alpha to BMP with premultiplied alpha.
+Use "Pixelformer" program to convert PNG with alpha to BMP with premultiplied alpha.
 
 The transparent "TEST 123" text will be click-trough to the background program.
 
@@ -97,6 +97,7 @@ LRESULT CALLBACK SplashProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 		case WM_CREATE:
 			
 			hBitmap1 = LoadImageA(NULL, "babymetal-july-babymetal-2014-promo-636-transparent.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+			hBitmap1 = LoadImageA(NULL, "su-avatar-premultiplied-alpha-large-636x380.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 			
 			
 			blend.BlendOp = AC_SRC_OVER;

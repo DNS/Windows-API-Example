@@ -128,7 +128,7 @@ INT WINAPI wWinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLin
 	}
 	
 	// create main window
-	hwnd = CreateWindowExW(WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES | WS_EX_CONTROLPARENT, 
+	hwnd = CreateWindowExW(WS_EX_WINDOWEDGE | WS_EX_ACCEPTFILES | WS_EX_CONTROLPARENT | WS_EX_TOPMOST,
 		wc.lpszClassName, L"Title", 
 		WS_VISIBLE | WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_TABSTOP, 
 		0, 0, 800, 600, (HWND) NULL, (HMENU) NULL, hInstance, NULL);
