@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimpleWindow", "Win32 API\SimpleWindow.vcxproj", "{963C798A-D1FC-4384-886A-FA77779CC9DC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Resource Dialog Sample", "Resource Dialog Sample\Resource Dialog Sample.vcxproj", "{E20BA1D5-2FE0-4DC5-B4A6-9EA66E2118CD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{963C798A-D1FC-4384-886A-FA77779CC9DC}.Debug|Win32.ActiveCfg = Debug|Win32
+		{963C798A-D1FC-4384-886A-FA77779CC9DC}.Debug|Win32.Build.0 = Debug|Win32
+		{963C798A-D1FC-4384-886A-FA77779CC9DC}.Release|Win32.ActiveCfg = Release|Win32
+		{963C798A-D1FC-4384-886A-FA77779CC9DC}.Release|Win32.Build.0 = Release|Win32
+		{E20BA1D5-2FE0-4DC5-B4A6-9EA66E2118CD}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E20BA1D5-2FE0-4DC5-B4A6-9EA66E2118CD}.Debug|Win32.Build.0 = Debug|Win32
+		{E20BA1D5-2FE0-4DC5-B4A6-9EA66E2118CD}.Release|Win32.ActiveCfg = Release|Win32
+		{E20BA1D5-2FE0-4DC5-B4A6-9EA66E2118CD}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
